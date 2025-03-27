@@ -1,49 +1,17 @@
-#!/usr/bin/env node
-import { callbackHandler } from "./utils/callbackHandler.js";
-
-
-/****************************************************
+/**
+ * MCP Status Callback Handler
  * 
- *                  Callback Handler
- *  
- ****************************************************/
-let statusCallback = "";    // this is the URL to use for any status callbacks to the MCP server
+ * A utility for handling API callbacks via Ngrok tunnels
+ */
 
-// Set up event listeners for callback handler logs
-callbackHandler.on('log', (data) => {
-    // Log the callback handler logs
-    console.log(`Callback log: ${data.level}: ${data.message}`);
-});
+export {
+    CallbackHandler,
+    CallbackHandlerOptions,
+    LogEventData,
+    CallbackEventData,
+    TunnelStatusEventData,
+    CallbackHandlerEvents
+} from './CallbackHandler.js';
 
-// Add event listener for callback events
-callbackHandler.on('callback', (data) => {
-    // Log the callback data
-    console.log(`Received callback: ${JSON.stringify(data.message)}`);
-});
-
-// Add event listener for callback ready event
-callbackHandler.on('tunnelStatus', (data) => {
-    if (data.level === 'error') {
-        // Log the tunnel failure
-        console.log(`Failed to establish tunnel.: ${data.message}`);
-    } else {
-        // Log the tunnel URL
-        console.log(`Tunnel Established to URL: ${data.message}`);
-
-        // Assign the URL to the statusCallback variable to use in your code.
-        statusCallback = data.message;
-        console.log(`\n\n <<<<<<<<<<<<  Status Callback URL: ${statusCallback} >>>>>>>>>>>>`);
-    }
-});
-
-// Start the callback handler with variables from env file
-const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
-const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
-
-// Start the callback handler
-if (!ngrokAuthToken) {
-    console.error("NGROK_AUTH_TOKEN is required but not provided in environment variables");
-    process.exit(1);
-} else {
-    callbackHandler.start(ngrokAuthToken, customDomain);
-}
+// For backward compatibility
+export { CallbackHandler as default } from './CallbackHandler.js';
