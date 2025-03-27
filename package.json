@@ -1,7 +1,7 @@
 {
-    "name": "empty-mcp-server",
+    "name": "mcp-status-callback-handler",
     "version": "0.1.0",
-    "description": "Empty MCP Server with TypeScript SDK",
+    "description": "Simple Ngrok based status callback handler with dynamic tunnel creation",
     "main": "build/index.js",
     "type": "module",
     "bin": {
