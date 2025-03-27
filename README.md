@@ -26,13 +26,14 @@ You need an ngrok auth token to use this library. You can get one by:
 
 ## Setup
 
-1. Create a `.env` file in your project's `src` directory with your ngrok auth token:
+1. Create a `.env` file in your project's `src` directory with your ngrok auth token and Optional custome domain. Note: The custom domain is optional and can be left blank if you do not have one. It is just the base domain without the protocol (e.g., `mydomain.ngrok.dev`). 
 
 ```
 NGROK_AUTH_TOKEN=your_ngrok_auth_token_here
+NGROK_CUSTOM_DOMAIN=mydomain.ngrok.dev  # Optional
 ```
 
-2. Import and use the callback handler in your application:
+2. Import the callback handler in your application:
 
 ```typescript
 import { callbackHandler } from "mcp-status-callback-handler";
@@ -70,8 +71,18 @@ callbackHandler.on('tunnelStatus', (data) => {
   }
 });
 
-// Start the callback handler
-callbackHandler.start();
+// Get your environment variables
+const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN; // Optional
+
+// Check if the required auth token is available
+if (!ngrokAuthToken) {
+  console.error("NGROK_AUTH_TOKEN is required but not provided in environment variables");
+  process.exit(1);
+}
+
+// Start the callback handler with the auth token and optional custom domain
+callbackHandler.start(ngrokAuthToken, customDomain);
 ```
 
 ## Usage
@@ -128,13 +139,13 @@ The callback handler emits the following events:
 
 ### Methods
 
-- **start()**: Starts the callback server and sets up the ngrok tunnel
+- **start(ngrokAuthToken: string, customDomain?: string)**: Starts the callback server and sets up the ngrok tunnel
 - **stop()**: Stops the server and closes the tunnel
 - **getPublicUrl()**: Returns the current public ngrok URL
 
 ## Troubleshooting
 
-- **Ngrok Auth Token Error**: Make sure you've set the `NGROK_AUTH_TOKEN` in your `.env` file
+- **Ngrok Auth Token Error**: Make sure you're providing a valid `ngrokAuthToken` to the `start()` method
 - **Port Already in Use**: The library will automatically try the next port if the specified one is in use
 - **Tunnel Connection Issues**: Check your internet connection and ngrok status at [status.ngrok.com](https://status.ngrok.com)
 

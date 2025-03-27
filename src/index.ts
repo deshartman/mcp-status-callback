@@ -36,6 +36,14 @@ callbackHandler.on('tunnelStatus', (data) => {
     }
 });
 
-// Start the callback handler
-callbackHandler.start();
+// Start the callback handler with variables from env file
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
+const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
 
+// Start the callback handler
+if (!ngrokAuthToken) {
+    console.error("NGROK_AUTH_TOKEN is required but not provided in environment variables");
+    process.exit(1);
+} else {
+    callbackHandler.start(ngrokAuthToken, customDomain);
+}
