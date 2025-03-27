@@ -1,0 +1,13 @@
+{
+    "name": "mcp-status-callback-test",
+    "version": "1.0.0",
+    "description": "Test for mcp-status-callback module",
+    "main": "test.js",
+    "scripts": {
+        "test": "node test.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.7",
+        "twilio-agent-payments-mcp-server": "../build/index.js"
+    }
+}

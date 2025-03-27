@@ -54,9 +54,6 @@ export interface CallbackHandlerEvents {
  */
 export class CallbackHandler extends EventEmitter {
     private app: express.Application;
-    // private port: number;
-    // private customDomain: string;
-    // private ngrokAuthToken: string;
     private server: any;
     private ngrokUrl: string | null = null;
 
