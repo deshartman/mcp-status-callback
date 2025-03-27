@@ -7,8 +7,11 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './src/.env' });
 
 /**
- * Callback handler for Twilio payment callbacks
- * Extends EventEmitter to emit events that can be consumed by the main application
+ * This is a general utility that establishes an Ngrok tunnel to a local Express server for API callbacks. The intention is that if you fire off an API request with a status callback URL,
+ * then this utility can handle the response to a localhost via an Ngrok tunnel setup and emit the result to a local listener.
+ * 
+ * NOTE: I am purposely not using console.log in this lib, as it is going to be used with MCP Servers using Stdio for logging.
+ * 
  */
 class CallbackHandler extends EventEmitter {
     private app: express.Application;
@@ -23,18 +26,18 @@ class CallbackHandler extends EventEmitter {
 
         // Configure Express
         this.app.use(express.json());
+        this.app.use(express.urlencoded({ extended: true }));
+
 
         // Add health check route
-        this.app.get('/health', (_, res) => {
-            res.send('good');
+        this.app.get('/', (_, res) => {
+            res.send('POST status callbacks to /callback');
         });
 
-        // Add callback POST endpoint
+        // This is the main status callback endpoint. It will pass the request body to whoever is listening
         this.app.post('/callback', (req, res) => {
             // Emit an event with the request body
-            this.emit('callback', req.body);
-            // Don't log here, we'll log in the event listener in index.ts
-
+            this.emit('callback', { level: 'info', message: req.body });
             // Send a success response
             res.status(200).send('Callback received');
         });
@@ -51,41 +54,21 @@ class CallbackHandler extends EventEmitter {
                 throw new Error('NGROK_AUTH_TOKEN not found in environment variables');
             }
 
-            this.emit('log', { level: 'info', message: `Setting up ngrok tunnel with auth token: ${ngrokAuthToken.substring(0, 5)}...` });
-
             // Configure ngrok with auth token
             await ngrok.authtoken(ngrokAuthToken);
-
-            this.emit('log', { level: 'info', message: `Attempting to connect ngrok to port ${port}` });
 
             // Start ngrok tunnel pointing to the specified port with more options
             this.ngrokUrl = await ngrok.connect({
                 addr: port,
-                authtoken: ngrokAuthToken, // Explicitly provide the auth token here as well
-                onStatusChange: (status) => {
-                    this.emit('log', { level: 'info', message: `Ngrok status changed: ${status}` });
-                },
-                onLogEvent: (logEvent) => {
-                    this.emit('log', { level: 'info', message: `Ngrok log: ${logEvent}` });
-                }
+                authtoken: ngrokAuthToken
             });
 
-            this.emit('log', { level: 'info', message: `Ngrok tunnel established: ${this.ngrokUrl}` });
-            this.emit('ngrokReady', this.ngrokUrl);
-
-            // Confirm in logs that we're tunneling to the correct port
-            this.emit('log', { level: 'info', message: `Ngrok is forwarding traffic from ${this.ngrokUrl} to http://localhost:${port}` });
+            // Provide the boolean status and public URL if ready: true, to the listener
+            this.emit('tunnelStatus', { level: 'info', message: `${this.ngrokUrl}/callback` });
         } catch (error) {
-            this.emit('log', { level: 'error', message: `Failed to establish ngrok tunnel: ${error}` });
-            this.emit('log', { level: 'info', message: 'Note: If you see ECONNREFUSED 127.0.0.1:4041, you may need to start ngrok manually first with "ngrok http 4000"' });
-
-            // Try to provide more information about the error
-            if (error instanceof Error) {
-                this.emit('log', { level: 'error', message: `Error details: ${error.message}` });
-                if (error.stack) {
-                    this.emit('log', { level: 'error', message: `Stack trace: ${error.stack}` });
-                }
-            }
+            console.error(`Failed to establish ngrok tunnel: ${error}`);
+            // If there was a failure in setting up the tunnel, emit the event with an empty URL
+            this.emit('tunnelStatus', { level: 'error', message: error });
         }
     }
 
@@ -103,7 +86,7 @@ class CallbackHandler extends EventEmitter {
                     serverAttempt.close();
                     startServer(portToTry + 1);
                 } else {
-                    this.emit('error', error);
+                    this.emit('log', { level: 'error', message: `Start server Error: ${error}` });
                     throw error;
                 }
             });
