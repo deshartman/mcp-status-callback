@@ -45,11 +45,30 @@ callbackHandler.on('tunnelStatus', (data) => {
 });
 
 // Start the server with your Ngrok auth token
+// The start method returns a Promise that resolves to the public callback URL
 const ngrokAuthToken = 'your-ngrok-auth-token';
-callbackHandler.start(ngrokAuthToken);
+
+// Using async/await with try/catch
+(async () => {
+  try {
+    // start() now returns the public URL directly
+    const publicUrl = await callbackHandler.start(ngrokAuthToken);
+    console.log(`Server started! Use this URL for callbacks: ${publicUrl}`);
+    // You can now use this URL in your API requests
+  } catch (error) {
+    console.error('Failed to start callback handler:', error);
+  }
+})();
 
 // Optional: Use a custom domain (requires Ngrok paid plan)
-// callbackHandler.start(ngrokAuthToken, 'your-custom-domain.ngrok.io');
+// async function startWithCustomDomain() {
+//   try {
+//     const publicUrl = await callbackHandler.start(ngrokAuthToken, 'your-custom-domain.ngrok.io');
+//     console.log(`Custom domain callback URL: ${publicUrl}`);
+//   } catch (error) {
+//     console.error('Failed to start with custom domain:', error);
+//   }
+// }
 
 // When you're done, stop the server
 // await callbackHandler.stop();
@@ -67,8 +86,20 @@ callbackHandler.on('callback', (data: CallbackEventData) => {
   // Process the strongly-typed payload
 });
 
-// Start the server
-callbackHandler.start('your-ngrok-auth-token');
+// Start the server - returns a Promise with the public URL
+const startServer = async () => {
+  try {
+    // start() now returns the public URL directly
+    const publicUrl = await callbackHandler.start('your-ngrok-auth-token');
+    console.log(`Server started with callback URL: ${publicUrl}`);
+    return publicUrl;
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    throw error; // Re-throw if you want calling code to handle it
+  }
+};
+
+startServer();
 ```
 
 ## API Reference
@@ -83,11 +114,11 @@ The main class for handling callbacks.
 new CallbackHandler(options?: CallbackHandlerOptions)
 ```
 
-- `options.port` (optional): The port to run the Express server on (default: 4000)
+- `options.port` (optional): The port to run the Express server on (default: 4000). If the specified port is in use, the server will automatically try the next available port.
 
 #### Methods
 
-- `start(ngrokAuthToken: string, customDomain?: string): void` - Starts the callback server and establishes an Ngrok tunnel
+- `start(ngrokAuthToken: string, customDomain?: string): Promise<string>` - Starts the callback server and establishes an Ngrok tunnel. **Returns a Promise that resolves to the public callback URL**, which you can use directly in your API requests.
 - `getPublicUrl(): string | null` - Returns the public Ngrok URL if available
 - `stop(): Promise<void>` - Stops the callback server and closes the Ngrok tunnel
 
@@ -103,6 +134,10 @@ new CallbackHandler(options?: CallbackHandlerOptions)
   - `level`: 'info' | 'error'
   - `message`: string | Error
 
+## Automatic Port Finding
+
+The CallbackHandler automatically finds an available port if the specified port is in use. This means you don't have to worry about port conflicts when starting the server. If the default port (4000) or your specified port is already in use, the server will increment the port number and try again until it finds an available port.
+
 ## Custom Domains
 
 Ngrok allows you to use custom domains with paid plans. This gives you a consistent URL for your callbacks, which is useful for:
@@ -115,15 +150,30 @@ Ngrok allows you to use custom domains with paid plans. This gives you a consist
 To use a custom domain:
 
 ```javascript
-// Option 1: Pass the custom domain directly
-callbackHandler.start(ngrokAuthToken, 'your-domain.ngrok.io');
+// Option 1: Pass the custom domain directly and get the URL from the Promise
+async function startWithCustomDomain() {
+  try {
+    const publicUrl = await callbackHandler.start(ngrokAuthToken, 'your-domain.ngrok.io');
+    console.log(`Custom domain callback URL: ${publicUrl}`);
+    // Use this URL in your API requests
+  } catch (error) {
+    console.error('Failed to start with custom domain:', error);
+  }
+}
 
 // Option 2: Use environment variables
-const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
-if (customDomain) {
-  callbackHandler.start(ngrokAuthToken, customDomain);
-} else {
-  callbackHandler.start(ngrokAuthToken);
+async function startWithOptionalCustomDomain() {
+  const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
+  try {
+    const publicUrl = await callbackHandler.start(
+      ngrokAuthToken, 
+      customDomain || undefined
+    );
+    console.log(`Callback URL: ${publicUrl}`);
+    // Use this URL in your API requests
+  } catch (error) {
+    console.error('Failed to start callback handler:', error);
+  }
 }
 ```
 
@@ -139,20 +189,33 @@ import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
 // Set up the callback handler
 const callbackHandler = new CallbackHandler();
-let callbackUrl = '';
 
+// Start the callback handler and get the URL directly from the Promise
+async function setupCallbackHandler() {
+  try {
+    // start() now returns the public URL directly
+    const callbackUrl = await callbackHandler.start('your-ngrok-auth-token');
+    console.log(`Callback URL ready: ${callbackUrl}`);
+    // Now you can use the callbackUrl in your MCP server tools
+    // setupMcpServerWithCallback(callbackUrl);
+    return callbackUrl;
+  } catch (error) {
+    console.error('Failed to start callback handler:', error);
+    throw error;
+  }
+}
+
+// You can also use the tunnelStatus event as before
 callbackHandler.on('tunnelStatus', (data) => {
   if (data.level === 'info') {
-    callbackUrl = data.message;
-    console.log(`Callback URL ready: ${callbackUrl}`);
+    console.log(`Tunnel status update: ${data.message}`);
   }
 });
 
-// Start the callback handler
-callbackHandler.start('your-ngrok-auth-token');
-
 // Use the callback URL in your MCP server tools
-// ...
+setupCallbackHandler().then(url => {
+  // Use the URL in your MCP server configuration
+});
 ```
 
 ## Publishing

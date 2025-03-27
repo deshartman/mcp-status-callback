@@ -96,23 +96,41 @@ if (!ngrokAuthToken) {
     process.exit(1);
 }
 
-// Start with optional custom domain
-if (customDomain) {
-    console.log(`Using custom domain: ${customDomain}`);
-    callbackHandler.start(ngrokAuthToken, customDomain);
+// Define an async function to start the callback handler
+const startCallbackHandler = async (): Promise<void> => {
+    try {
+        let url: string;
 
-    // With a custom domain, you get a consistent URL every time
-    // This is useful for:
-    // - Configuring webhooks in third-party services
-    // - Sharing a stable URL with team members
-    // - Testing with consistent URLs across restarts
-} else {
-    console.log('Using default Ngrok domain (random subdomain)');
-    callbackHandler.start(ngrokAuthToken);
+        // Start with optional custom domain
+        if (customDomain) {
+            console.log(`Using custom domain: ${customDomain}`);
+            url = await callbackHandler.start(ngrokAuthToken, customDomain);
 
-    // Note: Custom domains require a paid Ngrok plan
-    // See: https://ngrok.com/pricing
-}
+            // With a custom domain, you get a consistent URL every time
+            // This is useful for:
+            // - Configuring webhooks in third-party services
+            // - Sharing a stable URL with team members
+            // - Testing with consistent URLs across restarts
+        } else {
+            console.log('Using default Ngrok domain (random subdomain)');
+            url = await callbackHandler.start(ngrokAuthToken);
+
+            // Note: Custom domains require a paid Ngrok plan
+            // See: https://ngrok.com/pricing
+        }
+
+        console.log(`Callback URL (from start): ${url}`);
+
+        // You can use the URL directly here
+        storeCallbackUrl(url);
+    } catch (error) {
+        console.error('Failed to start callback handler:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
+};
+
+// Start the callback handler
+startCallbackHandler();
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {

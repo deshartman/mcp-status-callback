@@ -54,9 +54,9 @@ export interface CallbackHandlerEvents {
  */
 export class CallbackHandler extends EventEmitter {
     private app: express.Application;
-    private port: number;
-    private customDomain: string;
-    private ngrokAuthToken: string;
+    // private port: number;
+    // private customDomain: string;
+    // private ngrokAuthToken: string;
     private server: any;
     private ngrokUrl: string | null = null;
 
@@ -67,9 +67,7 @@ export class CallbackHandler extends EventEmitter {
      */
     constructor(options: CallbackHandlerOptions = {}) {
         super();
-        this.port = options.port || 4000;
-        this.customDomain = "";
-        this.ngrokAuthToken = "";
+        // this.port = options.port || 4000;
         this.app = express();
 
         // Configure Express
@@ -92,40 +90,44 @@ export class CallbackHandler extends EventEmitter {
 
     /**
      * Sets up an ngrok tunnel to expose the local server publicly
+     * 
+     * @param ngrokAuthToken Ngrok authentication token
+     * @param port Port number to tunnel to
+     * @param customDomain Optional custom domain to use with ngrok
+     * @returns Promise that resolves to the callback URL
      */
-    private async setupNgrokTunnel(): Promise<void> {
+    private async setupNgrokTunnel(ngrokAuthToken: string, port: number, customDomain?: string): Promise<string> {
         try {
-            if (!this.ngrokAuthToken) {
-                const error = new Error('Ngrok auth token not provided');
-                this.emit('log', { level: 'error', message: error });
-                throw error;
-            }
-
             // Configure ngrok with auth token
-            await ngrok.authtoken(this.ngrokAuthToken);
+            await ngrok.authtoken(ngrokAuthToken);
 
             // Configure ngrok options
             const ngrokOptions: any = {
-                addr: this.port,
-                authtoken: this.ngrokAuthToken
+                addr: port,
+                authtoken: ngrokAuthToken
             };
 
             // Add custom domain if provided
-            if (this.customDomain) {
-                ngrokOptions.hostname = this.customDomain;
-                this.emit('log', { level: 'info', message: `Using custom domain: ${this.customDomain}` });
+            if (customDomain) {
+                ngrokOptions.hostname = customDomain;
+                this.emit('log', { level: 'info', message: `Using custom domain: ${customDomain}` });
             }
 
             // Start ngrok tunnel with the configured options
             this.ngrokUrl = await ngrok.connect(ngrokOptions);
 
             // Provide the public URL to the listener
-            this.emit('tunnelStatus', { level: 'info', message: `${this.ngrokUrl}/callback` });
+            const callbackUrl = `${this.ngrokUrl}/callback`;
+            this.emit('tunnelStatus', { level: 'info', message: callbackUrl });
+
+            // Return the callback URL
+            return callbackUrl;
         } catch (error) {
             // Emit the error event instead of using console.error
             this.emit('log', { level: 'error', message: `Failed to establish ngrok tunnel: ${error}` });
             // If there was a failure in setting up the tunnel, emit the event with the error
             this.emit('tunnelStatus', { level: 'error', message: error instanceof Error ? error : String(error) });
+            throw error; // Re-throw the error so the caller can handle it
         }
     }
 
@@ -135,39 +137,48 @@ export class CallbackHandler extends EventEmitter {
      * 
      * @param ngrokAuthToken Ngrok authentication token
      * @param customDomain Optional custom domain to use with ngrok
+     * @returns Promise that resolves to the callback URL
      */
-    start(ngrokAuthToken: string, customDomain?: string): void {
-        const startServer = (portToTry: number = this.port) => {
-            const serverAttempt = this.app.listen(portToTry);
+    async start(ngrokAuthToken: string, customDomain?: string): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const startServer = (portToTry: number = 4000) => {
+                const serverAttempt = this.app.listen(portToTry);
 
-            serverAttempt.on('error', (error: NodeJS.ErrnoException) => {
-                if (error.code === 'EADDRINUSE') {
-                    this.emit('log', { level: 'warn', message: `Port ${portToTry} in use, trying port ${portToTry + 1}` });
-                    serverAttempt.close();
-                    startServer(portToTry + 1);
-                } else {
-                    this.emit('log', { level: 'error', message: `Start server Error: ${error}` });
-                    throw error;
-                }
-            });
+                serverAttempt.on('error', (error: NodeJS.ErrnoException) => {
+                    if (error.code === 'EADDRINUSE') {
+                        this.emit('log', { level: 'warn', message: `Port ${portToTry} in use, trying port ${portToTry + 1}` });
+                        serverAttempt.close();
+                        startServer(portToTry + 1);
+                    } else {
+                        this.emit('log', { level: 'error', message: `Start server Error: ${error}` });
+                        reject(error);
+                    }
+                });
 
-            serverAttempt.on('listening', () => {
-                this.port = portToTry; // Update the port to the one that worked
-                this.ngrokAuthToken = ngrokAuthToken;
-                this.customDomain = customDomain || '';
+                serverAttempt.on('listening', async () => {
+                    this.server = serverAttempt; // Store the successful server instance
+                    this.emit('log', { level: 'info', message: `Callback server listening on port ${portToTry}` });
 
-                this.server = serverAttempt; // Store the successful server instance
-                this.emit('log', { level: 'info', message: `Callback server listening on port ${this.port}` });
+                    // Set up ngrok tunnel after server starts successfully
+                    if (!ngrokAuthToken) {
+                        const error = new Error('Ngrok auth token not provided');
+                        this.emit('log', { level: 'error', message: error });
+                        reject(error);
+                        return;
+                    }
 
-                // Set up ngrok tunnel after server starts successfully
-                this.setupNgrokTunnel()
-                    .catch(error => {
-                        this.emit('log', { level: 'error', message: `Error setting up ngrok: ${error}` });
-                    });
-            });
-        };
+                    try {
+                        // Get the callback URL from setupNgrokTunnel
+                        const callbackUrl = await this.setupNgrokTunnel(ngrokAuthToken, portToTry, customDomain);
+                        resolve(callbackUrl);
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            };
 
-        startServer();
+            startServer();
+        });
     }
 
     /**

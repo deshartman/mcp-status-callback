@@ -59,18 +59,36 @@ if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
     process.exit(1);
 }
 
+// Define an async function to start the callback handler
+const startCallbackHandler = async () => {
+    try {
+        // If you have a paid Ngrok plan, you can use a custom domain
+        let url;
+        if (customDomain) {
+            console.log(`Using custom domain: ${customDomain}`);
+            url = await callbackHandler.start(ngrokAuthToken, customDomain);
+        } else {
+            console.log('Using default Ngrok domain (random subdomain)');
+            url = await callbackHandler.start(ngrokAuthToken);
+            console.log('Tip: With a paid Ngrok plan, you can use a custom domain for a consistent URL');
+            console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or pass it as the second parameter');
+            console.log('     Example: callbackHandler.start(ngrokAuthToken, "your-domain.ngrok.io")');
+        }
+
+        console.log('\n=================================================');
+        console.log(`🚀 Callback URL (from start): ${url}`);
+        console.log('=================================================\n');
+
+        // You can use this URL directly in your application
+        // This is an alternative to using the 'tunnelStatus' event
+    } catch (error) {
+        console.error('Failed to start callback handler:', error);
+        process.exit(1);
+    }
+};
+
 // Start the callback handler
-// If you have a paid Ngrok plan, you can use a custom domain
-if (customDomain) {
-    console.log(`Using custom domain: ${customDomain}`);
-    callbackHandler.start(ngrokAuthToken, customDomain);
-} else {
-    console.log('Using default Ngrok domain (random subdomain)');
-    callbackHandler.start(ngrokAuthToken);
-    console.log('Tip: With a paid Ngrok plan, you can use a custom domain for a consistent URL');
-    console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or pass it as the second parameter');
-    console.log('     Example: callbackHandler.start(ngrokAuthToken, "your-domain.ngrok.io")');
-}
+startCallbackHandler();
 
 console.log('Starting callback handler...');
 console.log('Press Ctrl+C to stop');
