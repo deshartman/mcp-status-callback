@@ -1,6 +1,6 @@
 {
-    "name": "mcp-status-callback",
-    "version": "0.1.0",
+    "name": "@deshartman/mcp-status-callback",
+    "version": "0.2.0",
     "description": "A utility for handling API callbacks via Ngrok tunnels. Especially useful for MCP status callbacks.",
     "main": "build/index.js",
     "types": "build/index.d.ts",
@@ -50,5 +50,8 @@
     "bugs": {
         "url": "https://github.com/deshartman/mcp-status-callback/issues"
     },
-    "homepage": "https://github.com/deshartman/mcp-status-callback#readme"
+    "homepage": "https://github.com/deshartman/mcp-status-callback#readme",
+    "publishConfig": {
+        "access": "public"
+    }
 }

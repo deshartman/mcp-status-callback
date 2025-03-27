@@ -7,7 +7,7 @@ This module creates a local Express server and establishes an Ngrok tunnel to it
 ## Installation
 
 ```bash
-npm install mcp-status-callback
+npm install @deshartman/mcp-status-callback
 ```
 
 ## Requirements
@@ -20,7 +20,7 @@ npm install mcp-status-callback
 ### Basic Usage
 
 ```javascript
-import { CallbackHandler } from 'mcp-status-callback';
+import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
 // Create a new instance
 const callbackHandler = new CallbackHandler({ port: 4000 });
@@ -58,7 +58,7 @@ callbackHandler.start(ngrokAuthToken);
 ### TypeScript Usage
 
 ```typescript
-import { CallbackHandler, CallbackEventData } from 'mcp-status-callback';
+import { CallbackHandler, CallbackEventData } from '@deshartman/mcp-status-callback';
 
 const callbackHandler = new CallbackHandler({ port: 4000 });
 
@@ -103,13 +103,39 @@ new CallbackHandler(options?: CallbackHandlerOptions)
   - `level`: 'info' | 'error'
   - `message`: string | Error
 
+## Custom Domains
+
+Ngrok allows you to use custom domains with paid plans. This gives you a consistent URL for your callbacks, which is useful for:
+
+- Configuring webhooks in third-party services without updating them each time you restart
+- Sharing a stable URL with team members
+- Testing with consistent URLs across development sessions
+- Creating a more professional appearance for demos
+
+To use a custom domain:
+
+```javascript
+// Option 1: Pass the custom domain directly
+callbackHandler.start(ngrokAuthToken, 'your-domain.ngrok.io');
+
+// Option 2: Use environment variables
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
+if (customDomain) {
+  callbackHandler.start(ngrokAuthToken, customDomain);
+} else {
+  callbackHandler.start(ngrokAuthToken);
+}
+```
+
+Note: Custom domains require a paid Ngrok plan. See [ngrok.com/pricing](https://ngrok.com/pricing) for details.
+
 ## Example: Using with MCP Servers
 
 This utility is particularly useful for MCP (Model Context Protocol) servers that need to receive callbacks from external services.
 
 ```javascript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { CallbackHandler } from 'mcp-status-callback';
+import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
 // Set up the callback handler
 const callbackHandler = new CallbackHandler();
@@ -127,6 +153,21 @@ callbackHandler.start('your-ngrok-auth-token');
 
 // Use the callback URL in your MCP server tools
 // ...
+```
+
+## Publishing
+
+This package is published with a scope. To publish updates:
+
+```bash
+# Build the package
+npm run build
+
+# Publish to npm (first time)
+npm publish --access=public
+
+# For subsequent updates
+npm publish
 ```
 
 ## License

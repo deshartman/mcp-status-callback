@@ -5,7 +5,7 @@
  * and use the callback URL in your application.
  */
 
-import { CallbackHandler } from 'mcp-status-callback';
+import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
 // Create a new instance with default port (4000)
 const callbackHandler = new CallbackHandler();
@@ -50,6 +50,8 @@ callbackHandler.on('tunnelStatus', (data) => {
 // Start the callback handler with your Ngrok auth token
 // Replace 'YOUR_NGROK_AUTH_TOKEN' with your actual token
 const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN || 'YOUR_NGROK_AUTH_TOKEN';
+// Optional: Custom domain (requires Ngrok paid plan)
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN || '';
 
 if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
     console.log('⚠️  Please set your Ngrok auth token in the code or as an environment variable NGROK_AUTH_TOKEN');
@@ -58,7 +60,17 @@ if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
 }
 
 // Start the callback handler
-callbackHandler.start(ngrokAuthToken);
+// If you have a paid Ngrok plan, you can use a custom domain
+if (customDomain) {
+    console.log(`Using custom domain: ${customDomain}`);
+    callbackHandler.start(ngrokAuthToken, customDomain);
+} else {
+    console.log('Using default Ngrok domain (random subdomain)');
+    callbackHandler.start(ngrokAuthToken);
+    console.log('Tip: With a paid Ngrok plan, you can use a custom domain for a consistent URL');
+    console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or pass it as the second parameter');
+    console.log('     Example: callbackHandler.start(ngrokAuthToken, "your-domain.ngrok.io")');
+}
 
 console.log('Starting callback handler...');
 console.log('Press Ctrl+C to stop');

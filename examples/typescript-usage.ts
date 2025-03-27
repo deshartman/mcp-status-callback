@@ -11,7 +11,7 @@ import {
     LogEventData,
     CallbackEventData,
     TunnelStatusEventData
-} from 'mcp-status-callback';
+} from '@deshartman/mcp-status-callback';
 
 // Define a type for our application's callback payload
 interface MyCallbackPayload {
@@ -97,7 +97,22 @@ if (!ngrokAuthToken) {
 }
 
 // Start with optional custom domain
-callbackHandler.start(ngrokAuthToken, customDomain);
+if (customDomain) {
+    console.log(`Using custom domain: ${customDomain}`);
+    callbackHandler.start(ngrokAuthToken, customDomain);
+
+    // With a custom domain, you get a consistent URL every time
+    // This is useful for:
+    // - Configuring webhooks in third-party services
+    // - Sharing a stable URL with team members
+    // - Testing with consistent URLs across restarts
+} else {
+    console.log('Using default Ngrok domain (random subdomain)');
+    callbackHandler.start(ngrokAuthToken);
+
+    // Note: Custom domains require a paid Ngrok plan
+    // See: https://ngrok.com/pricing
+}
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
