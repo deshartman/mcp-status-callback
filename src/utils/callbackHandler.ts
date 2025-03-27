@@ -17,20 +17,42 @@ class CallbackHandler extends EventEmitter {
 
         // Configure Express
         this.app.use(express.json());
-        this.app.use(express.urlencoded({ extended: true }));
 
-        // Set up routes
-        this.setupRoutes();
+        // Add health check route
+        this.app.get('/health', (_, res) => {
+            res.send('good');
+        });
     }
 
     /**
      * Starts the callback server
+     * Automatically finds an available port if the specified port is in use
      */
     start(): void {
-        this.server = this.app.listen(this.port, () => {
-            this.emit('log', { level: 'info', message: `Callback server listening on port ${this.port}` });
-        });
+        const startServer = (portToTry: number = this.port) => {
+            const serverAttempt = this.app.listen(portToTry);
+
+            serverAttempt.on('error', (error: NodeJS.ErrnoException) => {
+                if (error.code === 'EADDRINUSE') {
+                    this.emit('log', { level: 'warn', message: `Port ${portToTry} in use, trying port ${portToTry + 1}` });
+                    serverAttempt.close();
+                    startServer(portToTry + 1);
+                } else {
+                    this.emit('error', error);
+                    throw error;
+                }
+            });
+
+            serverAttempt.on('listening', () => {
+                this.port = portToTry; // Update the port to the one that worked
+                this.server = serverAttempt; // Store the successful server instance
+                this.emit('log', { level: 'info', message: `Callback server listening on port ${this.port}` });
+            });
+        };
+
+        startServer();
     }
+
 
     /**
      * Stops the callback server
@@ -41,24 +63,6 @@ class CallbackHandler extends EventEmitter {
             this.emit('log', { level: 'info', message: 'Callback server stopped' });
         }
     }
-
-    /**
-     * Sets up the Express routes
-     */
-    private setupRoutes(): void {
-        // Main callback endpoint
-        this.app.post('/', (req, res) => {
-            try {
-                // Send a success response
-                res.status(200).send('OK');
-            } catch (error) {
-                this.emit('log', { level: 'error', message: `callbackHandler: Error processing callback: ${error}` });
-                console.error(`callbackHandler: Error processing callback: ${error}`);
-                res.status(500).send('Error processing callback');
-            }
-        });
-    }
-
 
 }
 
