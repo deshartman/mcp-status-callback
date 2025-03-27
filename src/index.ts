@@ -62,6 +62,17 @@ const logToMcp = (data: { level: string, message: string }) => {
 // Set up event listeners for callback handler logs
 callbackHandler.on('log', logToMcp);
 
+// Add event listener for callback events
+callbackHandler.on('callback', (data) => {
+    // Log the callback data
+    logToMcp({ level: 'info', message: `Received callback: ${JSON.stringify(data)}` });
+});
+
+// Add event listener for ngrok ready event
+callbackHandler.on('ngrokReady', (url) => {
+    logToMcp({ level: 'info', message: `Ngrok URL ready: ${url}` });
+});
+
 // Start the callback handler
 callbackHandler.start();
 
@@ -81,7 +92,7 @@ async function main() {
 process.on("SIGINT", async () => {
     // Log shutdown message
     logToMcp({ level: 'info', message: "MCP Callback Server shutting down..." });
-    // callbackHandler.stop();
+    await callbackHandler.stop(); // Use await here since stop is now async
     await mcpServer.close();
     process.exit(0);
 });
