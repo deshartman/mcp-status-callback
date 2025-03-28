@@ -24,9 +24,19 @@ interface MyCallbackPayload {
     };
 }
 
+// Get environment variables for Ngrok configuration
+const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
+
+if (!ngrokAuthToken) {
+    console.error('NGROK_AUTH_TOKEN environment variable is required');
+    process.exit(1);
+}
+
 // Create a new instance with typed options
 const options: CallbackHandlerOptions = {
-    port: 4500 // Use a custom port
+    ngrokAuthToken: ngrokAuthToken, // Replace with your actual Ngrok auth token
+    customDomain: customDomain // Optional custom domain
 };
 
 const callbackHandler = new CallbackHandler(options);
@@ -87,37 +97,23 @@ function storeCallbackUrl(url: string): void {
     // In a real application, you might store this in a database or configuration
 }
 
-// Start the callback handler with environment variables
-const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
-const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
-
-if (!ngrokAuthToken) {
-    console.error('NGROK_AUTH_TOKEN environment variable is required');
-    process.exit(1);
-}
 
 // Define an async function to start the callback handler
 const startCallbackHandler = async (): Promise<void> => {
     try {
         let url: string;
 
-        // Start with optional custom domain
-        if (customDomain) {
-            console.log(`Using custom domain: ${customDomain}`);
-            url = await callbackHandler.start(ngrokAuthToken, customDomain);
+        // Start the callback handler
+        url = await callbackHandler.start();
 
-            // With a custom domain, you get a consistent URL every time
-            // This is useful for:
-            // - Configuring webhooks in third-party services
-            // - Sharing a stable URL with team members
-            // - Testing with consistent URLs across restarts
-        } else {
-            console.log('Using default Ngrok domain (random subdomain)');
-            url = await callbackHandler.start(ngrokAuthToken);
+        // With a custom domain, you get a consistent URL every time
+        // This is useful for:
+        // - Configuring webhooks in third-party services
+        // - Sharing a stable URL with team members
+        // - Testing with consistent URLs across restarts
 
-            // Note: Custom domains require a paid Ngrok plan
-            // See: https://ngrok.com/pricing
-        }
+        // Note: Custom domains require a paid Ngrok plan
+        // See: https://ngrok.com/pricing
 
         console.log(`Callback URL (from start): ${url}`);
 

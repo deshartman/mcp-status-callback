@@ -32,9 +32,9 @@ node test.js
 This test uses async/await syntax for better readability and error handling. It will:
 1. Load environment variables from the .env file
 2. Import the CallbackHandler from the local module
-3. Create an instance of the CallbackHandler
+3. Create an instance of the CallbackHandler with the Ngrok auth token and optional custom domain
 4. Set up event listeners
-5. Start the handler with the Ngrok auth token from .env
+5. Start the handler
 6. Create a tunnel and log the callback URL
 7. Stop the handler after 10 seconds
 
@@ -82,6 +82,16 @@ NGROK_AUTH_TOKEN=your_ngrok_auth_token
 
 # Optional: Custom domain (requires Ngrok paid plan)
 NGROK_CUSTOM_DOMAIN=your_custom_domain
+```
+
+The CallbackHandler constructor now requires an options object with the Ngrok auth token:
+
+```javascript
+// Create a new instance with options
+const callbackHandler = new CallbackHandler({
+    ngrokAuthToken: process.env.NGROK_AUTH_TOKEN,
+    customDomain: process.env.NGROK_CUSTOM_DOMAIN || undefined
+});
 ```
 
 You can also modify the test files to change the behavior, such as the timeout before stopping the handler:

@@ -7,8 +7,16 @@
 
 import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
-// Create a new instance with default port (4000)
-const callbackHandler = new CallbackHandler();
+// Get Ngrok auth token and optional custom domain
+const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN || 'YOUR_NGROK_AUTH_TOKEN';
+// Optional: Custom domain (requires Ngrok paid plan)
+const customDomain = process.env.NGROK_CUSTOM_DOMAIN || '';
+
+// Create a new instance with Ngrok auth token and optional custom domain
+const callbackHandler = new CallbackHandler({
+    ngrokAuthToken: ngrokAuthToken,
+    customDomain: customDomain || undefined
+});
 
 // Set up event listeners for logs
 callbackHandler.on('log', (data) => {
@@ -47,12 +55,6 @@ callbackHandler.on('tunnelStatus', (data) => {
     }
 });
 
-// Start the callback handler with your Ngrok auth token
-// Replace 'YOUR_NGROK_AUTH_TOKEN' with your actual token
-const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN || 'YOUR_NGROK_AUTH_TOKEN';
-// Optional: Custom domain (requires Ngrok paid plan)
-const customDomain = process.env.NGROK_CUSTOM_DOMAIN || '';
-
 if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
     console.log('⚠️  Please set your Ngrok auth token in the code or as an environment variable NGROK_AUTH_TOKEN');
     console.log('   Get your auth token at: https://dashboard.ngrok.com/get-started/your-authtoken');
@@ -62,17 +64,16 @@ if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
 // Define an async function to start the callback handler
 const startCallbackHandler = async () => {
     try {
-        // If you have a paid Ngrok plan, you can use a custom domain
-        let url;
+        // Start the callback handler
+        let url = await callbackHandler.start();
+
         if (customDomain) {
             console.log(`Using custom domain: ${customDomain}`);
-            url = await callbackHandler.start(ngrokAuthToken, customDomain);
         } else {
             console.log('Using default Ngrok domain (random subdomain)');
-            url = await callbackHandler.start(ngrokAuthToken);
             console.log('Tip: With a paid Ngrok plan, you can use a custom domain for a consistent URL');
-            console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or pass it as the second parameter');
-            console.log('     Example: callbackHandler.start(ngrokAuthToken, "your-domain.ngrok.io")');
+            console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or include it in the options');
+            console.log('     Example: new CallbackHandler({ ngrokAuthToken, customDomain: "your-domain.ngrok.io" })');
         }
 
         console.log('\n=================================================');

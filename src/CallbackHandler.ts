@@ -3,16 +3,6 @@ import { EventEmitter } from 'events';
 import ngrok from 'ngrok';
 
 /**
- * Interface for CallbackHandler options
- */
-export interface CallbackHandlerOptions {
-    /**
-     * Port to run the Express server on (default: 4000)
-     */
-    port?: number;
-}
-
-/**
  * Interface for log event data
  */
 export interface LogEventData {
@@ -46,6 +36,14 @@ export interface CallbackHandlerEvents {
 }
 
 /**
+ * Interface for CallbackHandler constructor options
+ */
+export interface CallbackHandlerOptions {
+    ngrokAuthToken: string;
+    customDomain?: string;
+}
+
+/**
  * CallbackHandler class
  * 
  * This utility establishes an Ngrok tunnel to a local Express server for API callbacks.
@@ -56,15 +54,18 @@ export class CallbackHandler extends EventEmitter {
     private app: express.Application;
     private server: any;
     private ngrokUrl: string | null = null;
+    private ngrokAuthToken: string;
+    private customDomain?: string;
 
     /**
      * Creates a new CallbackHandler instance
-     * 
+     *
      * @param options Configuration options
      */
-    constructor(options: CallbackHandlerOptions = {}) {
+    constructor(options: CallbackHandlerOptions) {
         super();
-        // this.port = options.port || 4000;
+        this.ngrokAuthToken = options.ngrokAuthToken;
+        this.customDomain = options.customDomain;
         this.app = express();
 
         // Configure Express
@@ -88,26 +89,24 @@ export class CallbackHandler extends EventEmitter {
     /**
      * Sets up an ngrok tunnel to expose the local server publicly
      * 
-     * @param ngrokAuthToken Ngrok authentication token
      * @param port Port number to tunnel to
-     * @param customDomain Optional custom domain to use with ngrok
      * @returns Promise that resolves to the callback URL
-     */
-    private async setupNgrokTunnel(ngrokAuthToken: string, port: number, customDomain?: string): Promise<string> {
+         */
+    private async setupNgrokTunnel(port: number): Promise<string> {
         try {
             // Configure ngrok with auth token
-            await ngrok.authtoken(ngrokAuthToken);
+            await ngrok.authtoken(this.ngrokAuthToken);
 
             // Configure ngrok options
             const ngrokOptions: any = {
                 addr: port,
-                authtoken: ngrokAuthToken
+                authtoken: this.ngrokAuthToken
             };
 
             // Add custom domain if provided
-            if (customDomain) {
-                ngrokOptions.hostname = customDomain;
-                this.emit('log', { level: 'info', message: `Using custom domain: ${customDomain}` });
+            if (this.customDomain) {
+                ngrokOptions.hostname = this.customDomain;
+                this.emit('log', { level: 'info', message: `Using custom domain: ${this.customDomain}` });
             }
 
             // Start ngrok tunnel with the configured options
@@ -132,11 +131,9 @@ export class CallbackHandler extends EventEmitter {
      * Starts the callback server.
      * Automatically finds an available port if the specified port is in use.
      * 
-     * @param ngrokAuthToken Ngrok authentication token
-     * @param customDomain Optional custom domain to use with ngrok
      * @returns Promise that resolves to the callback URL
      */
-    async start(ngrokAuthToken: string, customDomain?: string): Promise<string> {
+    async start(): Promise<string> {
         return new Promise((resolve, reject) => {
             const startServer = (portToTry: number = 4000) => {
                 const serverAttempt = this.app.listen(portToTry);
@@ -157,7 +154,7 @@ export class CallbackHandler extends EventEmitter {
                     this.emit('log', { level: 'info', message: `Callback server listening on port ${portToTry}` });
 
                     // Set up ngrok tunnel after server starts successfully
-                    if (!ngrokAuthToken) {
+                    if (!this.ngrokAuthToken) {
                         const error = new Error('Ngrok auth token not provided');
                         this.emit('log', { level: 'error', message: error });
                         reject(error);
@@ -166,7 +163,7 @@ export class CallbackHandler extends EventEmitter {
 
                     try {
                         // Get the callback URL from setupNgrokTunnel
-                        const callbackUrl = await this.setupNgrokTunnel(ngrokAuthToken, portToTry, customDomain);
+                        const callbackUrl = await this.setupNgrokTunnel(portToTry);
                         resolve(callbackUrl);
                     } catch (error) {
                         reject(error);

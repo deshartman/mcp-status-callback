@@ -22,8 +22,11 @@ npm install @deshartman/mcp-status-callback
 ```javascript
 import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
-// Create a new instance
-const callbackHandler = new CallbackHandler({ port: 4000 });
+// Create a new instance with required options
+const callbackHandler = new CallbackHandler({
+  ngrokAuthToken: 'your-ngrok-auth-token',
+  customDomain: 'your-custom-domain.ngrok.dev' // Optional
+});
 
 // Set up event listeners
 callbackHandler.on('log', (data) => {
@@ -44,15 +47,11 @@ callbackHandler.on('tunnelStatus', (data) => {
   }
 });
 
-// Start the server with your Ngrok auth token
-// The start method returns a Promise that resolves to the public callback URL
-const ngrokAuthToken = 'your-ngrok-auth-token';
-
 // Using async/await with try/catch
 (async () => {
   try {
     // start() now returns the public URL directly
-    const publicUrl = await callbackHandler.start(ngrokAuthToken);
+    const publicUrl = await callbackHandler.start();
     console.log(`Server started! Use this URL for callbacks: ${publicUrl}`);
     // You can now use this URL in your API requests
   } catch (error) {
@@ -63,7 +62,11 @@ const ngrokAuthToken = 'your-ngrok-auth-token';
 // Optional: Use a custom domain (requires Ngrok paid plan)
 // async function startWithCustomDomain() {
 //   try {
-//     const publicUrl = await callbackHandler.start(ngrokAuthToken, 'your-custom-domain.ngrok.io');
+//     const callbackHandler = new CallbackHandler({
+//       ngrokAuthToken: 'your-ngrok-auth-token',
+//       customDomain: 'your-custom-domain.ngrok.dev'
+//     });
+//     const publicUrl = await callbackHandler.start();
 //     console.log(`Custom domain callback URL: ${publicUrl}`);
 //   } catch (error) {
 //     console.error('Failed to start with custom domain:', error);
@@ -77,9 +80,15 @@ const ngrokAuthToken = 'your-ngrok-auth-token';
 ### TypeScript Usage
 
 ```typescript
-import { CallbackHandler, CallbackEventData } from '@deshartman/mcp-status-callback';
+import { CallbackHandler, CallbackEventData, CallbackHandlerOptions } from '@deshartman/mcp-status-callback';
 
-const callbackHandler = new CallbackHandler({ port: 4000 });
+// Define options with TypeScript type
+const options: CallbackHandlerOptions = {
+  ngrokAuthToken: 'your-ngrok-auth-token',
+  customDomain: 'your-custom-domain.ngrok.dev' // Optional
+};
+
+const callbackHandler = new CallbackHandler(options);
 
 callbackHandler.on('callback', (data: CallbackEventData) => {
   const payload = data.message;
@@ -90,7 +99,7 @@ callbackHandler.on('callback', (data: CallbackEventData) => {
 const startServer = async () => {
   try {
     // start() now returns the public URL directly
-    const publicUrl = await callbackHandler.start('your-ngrok-auth-token');
+    const publicUrl = await callbackHandler.start();
     console.log(`Server started with callback URL: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
@@ -111,14 +120,15 @@ The main class for handling callbacks.
 #### Constructor
 
 ```typescript
-new CallbackHandler(options?: CallbackHandlerOptions)
+new CallbackHandler(options: CallbackHandlerOptions)
 ```
 
-- `options.port` (optional): The port to run the Express server on (default: 4000). If the specified port is in use, the server will automatically try the next available port.
+- `options.ngrokAuthToken` (required): Your Ngrok authentication token
+- `options.customDomain` (optional): Custom domain for Ngrok tunnel (requires paid Ngrok plan)
 
 #### Methods
 
-- `start(ngrokAuthToken: string, customDomain?: string): Promise<string>` - Starts the callback server and establishes an Ngrok tunnel. **Returns a Promise that resolves to the public callback URL**, which you can use directly in your API requests.
+- `start(): Promise<string>` - Starts the callback server and establishes an Ngrok tunnel. **Returns a Promise that resolves to the public callback URL**, which you can use directly in your API requests.
 - `getPublicUrl(): string | null` - Returns the public Ngrok URL if available
 - `stop(): Promise<void>` - Stops the callback server and closes the Ngrok tunnel
 
@@ -150,10 +160,14 @@ Ngrok allows you to use custom domains with paid plans. This gives you a consist
 To use a custom domain:
 
 ```javascript
-// Option 1: Pass the custom domain directly and get the URL from the Promise
+// Option 1: Pass the custom domain in the constructor
 async function startWithCustomDomain() {
   try {
-    const publicUrl = await callbackHandler.start(ngrokAuthToken, 'your-domain.ngrok.io');
+    const callbackHandler = new CallbackHandler({
+      ngrokAuthToken: 'your-ngrok-auth-token',
+      customDomain: 'your-domain.ngrok.dev'
+    });
+    const publicUrl = await callbackHandler.start();
     console.log(`Custom domain callback URL: ${publicUrl}`);
     // Use this URL in your API requests
   } catch (error) {
@@ -163,12 +177,20 @@ async function startWithCustomDomain() {
 
 // Option 2: Use environment variables
 async function startWithOptionalCustomDomain() {
+  const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
   const customDomain = process.env.NGROK_CUSTOM_DOMAIN;
+  
+  if (!ngrokAuthToken) {
+    console.error('NGROK_AUTH_TOKEN environment variable is required');
+    return;
+  }
+  
   try {
-    const publicUrl = await callbackHandler.start(
-      ngrokAuthToken, 
-      customDomain || undefined
-    );
+    const callbackHandler = new CallbackHandler({
+      ngrokAuthToken,
+      customDomain: customDomain || undefined
+    });
+    const publicUrl = await callbackHandler.start();
     console.log(`Callback URL: ${publicUrl}`);
     // Use this URL in your API requests
   } catch (error) {
@@ -187,14 +209,17 @@ This utility is particularly useful for MCP (Model Context Protocol) servers tha
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { CallbackHandler } from '@deshartman/mcp-status-callback';
 
-// Set up the callback handler
-const callbackHandler = new CallbackHandler();
+// Set up the callback handler with required options
+const callbackHandler = new CallbackHandler({
+  ngrokAuthToken: 'your-ngrok-auth-token',
+  customDomain: 'your-custom-domain.ngrok.dev' // Optional
+});
 
 // Start the callback handler and get the URL directly from the Promise
 async function setupCallbackHandler() {
   try {
     // start() now returns the public URL directly
-    const callbackUrl = await callbackHandler.start('your-ngrok-auth-token');
+    const callbackUrl = await callbackHandler.start();
     console.log(`Callback URL ready: ${callbackUrl}`);
     // Now you can use the callbackUrl in your MCP server tools
     // setupMcpServerWithCallback(callbackUrl);
