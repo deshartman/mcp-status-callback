@@ -8,6 +8,8 @@
 // Import modules at the top level
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+// Import types from the main module
+import type { CallbackEventData, LogEventData, TunnelStatusEventData } from '../src/CallbackHandler.js';
 
 // Load .env file from the test directory
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -15,9 +17,13 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Define an async function to run the test
 const runTest = async (): Promise<void> => {
     try {
-        // Import the module
-        const module = await import('../build/index.js');
-        const { CallbackHandler } = module;
+        // Import the module - using a path that works after compilation to dist/
+        // @ts-ignore - This path works at runtime after compilation
+        const { CallbackHandler } = await import('../../build/index.js');
+
+        // // Alternative import method
+        // const module = await import('../../build/index.js');
+        // const { CallbackHandler } = module;
 
         // Get the Ngrok auth token from .env
         const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
@@ -41,15 +47,16 @@ const runTest = async (): Promise<void> => {
         console.log('CallbackHandler instance created successfully');
 
         // Set up event listeners
-        callbackHandler.on('log', (data) => {
+        callbackHandler.on('log', (data: LogEventData) => {
             console.log(`[${data.level.toUpperCase()}] ${data.message}`);
         });
 
-        callbackHandler.on('callback', (data) => {
-            console.log('Received callback data:', data.message);
+        callbackHandler.on('callback', (data: CallbackEventData) => {
+            console.log('Received callback query parameters:', data.queryParameters);
+            console.log('Received callback body:', data.body);
         });
 
-        callbackHandler.on('tunnelStatus', (data) => {
+        callbackHandler.on('tunnelStatus', (data: TunnelStatusEventData) => {
             if (data.level === 'error') {
                 const error = data.message instanceof Error
                     ? data.message.message

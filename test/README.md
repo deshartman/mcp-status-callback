@@ -84,7 +84,7 @@ NGROK_AUTH_TOKEN=your_ngrok_auth_token
 NGROK_CUSTOM_DOMAIN=your_custom_domain
 ```
 
-The CallbackHandler constructor now requires an options object with the Ngrok auth token:
+The CallbackHandler constructor requires an options object with the Ngrok auth token:
 
 ```javascript
 // Create a new instance with options

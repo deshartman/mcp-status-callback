@@ -15,7 +15,8 @@ export interface LogEventData {
  */
 export interface CallbackEventData {
     level: 'info';
-    message: any;
+    queryParameters: any;
+    body: any; // For the request body
 }
 
 /**
@@ -79,8 +80,13 @@ export class CallbackHandler extends EventEmitter {
 
         // This is the main status callback endpoint. It will pass the request body to whoever is listening
         this.app.post('/callback', (req, res) => {
-            // Emit an event with the request body
-            this.emit('callback', { level: 'info', message: req.body });
+            // Extract query parameters using req.query and body using req.body
+            const queryParameters = req.query; // Use the object directly as parsed by Express
+            const body = req.body;
+
+            // Emit an event with the raw query parameters object and the body
+            this.emit('callback', { level: 'info', queryParameters: queryParameters, body: body });
+
             // Send a success response
             res.status(200).send('Callback received');
         });

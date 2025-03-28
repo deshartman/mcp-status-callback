@@ -37,3 +37,4 @@ coverage/
 *.tmp
 *.temp
 test/package-lock.json
+package-lock.json

@@ -45,7 +45,8 @@ const runTest = async () => {
         });
 
         callbackHandler.on('callback', (data) => {
-            console.log('Received callback data:', data.message);
+            console.log('Received callback query parameters:', data.queryParameters);
+            console.log('Received callback body:', data.body);
         });
 
         callbackHandler.on('tunnelStatus', (data) => {

@@ -18,21 +18,31 @@ const callbackHandler = new CallbackHandler({
     customDomain: customDomain || undefined
 });
 
-// Set up event listeners for logs
+// Set up event listeners for logs (only errors and warnings)
 callbackHandler.on('log', (data) => {
-    console.log(`[${data.level.toUpperCase()}] ${data.message}`);
+    if (data.level === 'error' || data.level === 'warn') {
+        console.log(`[${data.level.toUpperCase()}] ${data.message}`);
+    }
 });
 
 // Listen for callbacks
 callbackHandler.on('callback', (data) => {
-    console.log('Received callback data:');
-    console.log(JSON.stringify(data.message, null, 2));
+    // Log a simplified version of the callback data
+    console.log('Received callback:');
 
-    // Here you would process the callback data according to your application needs
-    // For example:
-    if (data.message.status === 'completed') {
+    // Only log query parameters if they exist and are relevant
+    if (data.queryParameters && Object.keys(data.queryParameters).length > 0) {
+        console.log('Query parameters:', data.queryParameters);
+    }
+
+    // Log the body data
+    console.log('Body:', JSON.stringify(data.body, null, 2));
+
+    // Process based on status
+    if (data.body.status === 'completed') {
         console.log('Processing completed callback...');
-        // Do something with the completed status
+    } else if (data.queryParameters?.priority === 'high' && data.body.status === 'failed') {
+        console.log('⚠️ High priority task failed!');
     }
 });
 
@@ -42,22 +52,12 @@ callbackHandler.on('tunnelStatus', (data) => {
         console.error('Failed to establish tunnel:', data.message);
         process.exit(1);
     } else {
-        console.log('\n=================================================');
         console.log(`🚀 Callback URL ready: ${data.message}`);
-        console.log('=================================================\n');
-
-        console.log('Use this URL in your API requests that require a callback URL.');
-        console.log('For example, with curl:');
-        console.log(`curl -X POST ${data.message} -H "Content-Type: application/json" -d '{"status":"completed","data":{"id":"123"}}'`);
-
-        // In a real application, you would use this URL when making API requests
-        // that require a callback URL parameter
     }
 });
 
 if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
-    console.log('⚠️  Please set your Ngrok auth token in the code or as an environment variable NGROK_AUTH_TOKEN');
-    console.log('   Get your auth token at: https://dashboard.ngrok.com/get-started/your-authtoken');
+    console.log('⚠️  Ngrok auth token required');
     process.exit(1);
 }
 
@@ -65,23 +65,12 @@ if (ngrokAuthToken === 'YOUR_NGROK_AUTH_TOKEN') {
 const startCallbackHandler = async () => {
     try {
         // Start the callback handler
-        let url = await callbackHandler.start();
+        await callbackHandler.start();
 
+        // Log domain info only if using custom domain
         if (customDomain) {
             console.log(`Using custom domain: ${customDomain}`);
-        } else {
-            console.log('Using default Ngrok domain (random subdomain)');
-            console.log('Tip: With a paid Ngrok plan, you can use a custom domain for a consistent URL');
-            console.log('     Set NGROK_CUSTOM_DOMAIN environment variable or include it in the options');
-            console.log('     Example: new CallbackHandler({ ngrokAuthToken, customDomain: "your-domain.ngrok.io" })');
         }
-
-        console.log('\n=================================================');
-        console.log(`🚀 Callback URL (from start): ${url}`);
-        console.log('=================================================\n');
-
-        // You can use this URL directly in your application
-        // This is an alternative to using the 'tunnelStatus' event
     } catch (error) {
         console.error('Failed to start callback handler:', error);
         process.exit(1);
@@ -89,15 +78,12 @@ const startCallbackHandler = async () => {
 };
 
 // Start the callback handler
+console.log('Starting callback handler... (Press Ctrl+C to stop)');
 startCallbackHandler();
-
-console.log('Starting callback handler...');
-console.log('Press Ctrl+C to stop');
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
-    console.log('\nShutting down...');
+    console.log('Shutting down...');
     await callbackHandler.stop();
-    console.log('Callback handler stopped');
     process.exit(0);
 });

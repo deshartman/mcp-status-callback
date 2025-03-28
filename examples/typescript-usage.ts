@@ -49,8 +49,23 @@ callbackHandler.on('log', (data: LogEventData) => {
 
 // Handle callbacks with type casting for our specific payload
 callbackHandler.on('callback', (data: CallbackEventData) => {
-    // Cast the message to our expected payload type
-    const payload = data.message as MyCallbackPayload;
+    // Check for query parameters
+    if (data.queryParameters) {
+        console.log('Query parameters received:');
+        console.log(data.queryParameters);
+
+        // Example: Check for specific query parameters
+        if (data.queryParameters.source) {
+            console.log(`Request from source: ${data.queryParameters.source}`);
+        }
+
+        if (data.queryParameters.event_type) {
+            console.log(`Event type: ${data.queryParameters.event_type}`);
+        }
+    }
+
+    // Cast the body to our expected payload type
+    const payload = data.body as MyCallbackPayload;
 
     console.log(`Received ${payload.status} callback at ${payload.timestamp}`);
 
@@ -70,6 +85,12 @@ callbackHandler.on('callback', (data: CallbackEventData) => {
         case 'pending':
             console.log(`Task ${payload.data.id} is pending`);
             break;
+    }
+
+    // Example of using both query parameters and body together
+    if (data.queryParameters.priority === 'high' && payload.status === 'failed') {
+        console.log('High priority task failed! Sending urgent notification...');
+        // In a real app, you might call a notification service here
     }
 });
 

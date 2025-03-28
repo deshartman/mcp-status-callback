@@ -34,7 +34,8 @@ callbackHandler.on('log', (data) => {
 });
 
 callbackHandler.on('callback', (data) => {
-  console.log('Received callback:', data.message);
+  console.log('Received callback query parameters:', data.queryParameters);
+  console.log('Received callback body:', data.body);
   // Process the callback data here
 });
 
@@ -91,7 +92,8 @@ const options: CallbackHandlerOptions = {
 const callbackHandler = new CallbackHandler(options);
 
 callbackHandler.on('callback', (data: CallbackEventData) => {
-  const payload = data.message;
+  const queryParams = data.queryParameters;
+  const payload = data.body;
   // Process the strongly-typed payload
 });
 
@@ -139,7 +141,8 @@ new CallbackHandler(options: CallbackHandlerOptions)
   - `message`: string | Error
 - `'callback'` - Emitted when a callback is received
   - `level`: 'info'
-  - `message`: any (the callback payload)
+  - `queryParameters`: any (the query parameters from the request)
+  - `body`: any (the request body payload)
 - `'tunnelStatus'` - Emitted when the tunnel status changes
   - `level`: 'info' | 'error'
   - `message`: string | Error

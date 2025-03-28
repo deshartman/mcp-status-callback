@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-03-29
+
+### Changed
+- Updated the `CallbackEventData` type to include `queryParameters` and `body` properties instead of a single `message` property
+- This provides more detailed access to both query parameters and the request body in callback events
+- Updated documentation and examples to reflect the new structure
+
 ## [0.3.1] - 2025-03-28
 
 ### Changed
