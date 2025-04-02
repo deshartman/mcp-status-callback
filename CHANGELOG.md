@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2025-04-02
+
+### Fixed
+- Fixed tunnel shutdown with ngrok.disconnect(). Was leaving tunnels open when using NPM.
+
 ## [0.4.0] - 2025-03-29
 
 ### Changed

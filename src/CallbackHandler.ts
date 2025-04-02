@@ -196,9 +196,9 @@ export class CallbackHandler extends EventEmitter {
     async stop(): Promise<void> {
         // Close ngrok tunnel if it exists
         if (this.ngrokUrl) {
-            await ngrok.kill();
-            this.emit('log', { level: 'info', message: 'Ngrok tunnel closed' });
+            await ngrok.disconnect(this.ngrokUrl);
         }
+        this.emit('log', { level: 'info', message: 'Ngrok tunnel closed' });
 
         // Close server if it exists
         if (this.server) {
