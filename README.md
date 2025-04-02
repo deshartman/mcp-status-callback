@@ -12,7 +12,7 @@ npm install @deshartman/mcp-status-callback
 
 ## Requirements
 
-- Node.js 14 or higher
+- Node.js 18 or higher
 - An Ngrok account and auth token (get one at [ngrok.com](https://ngrok.com))
 
 ## Usage

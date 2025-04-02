@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2025-04-03
+
+### Changed
+- Updated Node.js requirement from >=16.0.0 to >=18.0.0 to ensure compatibility with the MCP SDK and newer Express versions
+- Updated @types/node from 16 to 18
+- This fixes the "TypeError: Object.hasOwn is not a function" error when using with Node.js v16.0.0
+
+## [0.4.3] - 2025-04-03
+
+### Changed
+- Downgraded Express from v5 to v4 (^4.18.2) for improved stability and compatibility and avoid the "TypeError: Object.hasOwn is not a function" error when loading.
+
 ## [0.4.2] - 2025-04-02
 
 ### Changed

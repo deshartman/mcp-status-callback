@@ -2,6 +2,11 @@
 
 This directory contains tests for the MCP Status Callback module using the local build.
 
+## Requirements
+
+- Node.js 18 or higher
+- An Ngrok account and auth token
+
 ## Setup
 
 The tests are configured to use the local build of the module by directly importing from `../build/index.js`. This approach ensures that the tests use the local version of the module without requiring any additional setup.
