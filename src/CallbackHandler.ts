@@ -80,11 +80,23 @@ export class CallbackHandler extends EventEmitter {
 
         // This is the main status callback endpoint. It will pass the request body to whoever is listening
         this.app.post('/callback', (req, res) => {
-            // Extract query parameters using req.query and body using req.body
+            // Extract query parameters using req.query
             const queryParameters = req.query; // Use the object directly as parsed by Express
-            const body = req.body;
 
-            // Emit an event with the raw query parameters object and the body
+            // Process the body based on content type
+            let body = req.body;
+
+            // Check if the request is URL-encoded (Twilio's default format)
+            const contentType = req.get('Content-Type') || '';
+            if (contentType.includes('application/x-www-form-urlencoded')) {
+                this.emit('log', { level: 'info', message: `application/x-www-form-urlencoded received, so converting to JSON` });
+                // Body is already parsed by express.urlencoded middleware
+                // But we want to ensure it's treated as a proper JSON object
+                body = { ...body };
+            }
+            // If it's already JSON, express.json middleware has parsed it and we can use it as is
+
+            // Emit an event with the query parameters object and the processed body
             this.emit('callback', { level: 'info', queryParameters: queryParameters, body: body });
 
             // Send a success response

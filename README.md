@@ -204,6 +204,32 @@ async function startWithOptionalCustomDomain() {
 
 Note: Custom domains require a paid Ngrok plan. See [ngrok.com/pricing](https://ngrok.com/pricing) for details.
 
+## Automatic Content Type Conversion
+
+The CallbackHandler automatically converts `application/x-www-form-urlencoded` request bodies to JSON objects. This is particularly useful when working with services like Twilio that send callbacks in URL-encoded format by default.
+
+When a request with `Content-Type: application/x-www-form-urlencoded` is received:
+
+1. The Express middleware parses the URL-encoded body
+2. The CallbackHandler converts it to a proper JSON object
+3. The converted JSON object is passed to your callback event handler
+4. A log event is emitted indicating the conversion occurred
+
+This means you can work with a consistent JSON format in your callback handlers regardless of how the data was originally sent, simplifying your code.
+
+```javascript
+callbackHandler.on('callback', (data) => {
+  // data.body is always a JSON object, even if the original request
+  // was sent as application/x-www-form-urlencoded
+  console.log('Received callback data:', data.body);
+  
+  // Process the data as JSON
+  if (data.body.status === 'completed') {
+    // Handle completed status
+  }
+});
+```
+
 ## Example: Using with MCP Servers
 
 This utility is particularly useful for MCP (Model Context Protocol) servers that need to receive callbacks from external services.

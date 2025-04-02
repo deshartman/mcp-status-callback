@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2025-04-02
+
+### Changed
+- The request body received is now parsed from application/x-www-form-urlencoded to JSON to keep it consistent with other responses.
+
+
 ## [0.4.1] - 2025-04-02
 
 ### Fixed
