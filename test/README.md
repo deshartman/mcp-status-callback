@@ -5,7 +5,7 @@ This directory contains tests for the MCP Status Callback module using the local
 ## Requirements
 
 - Node.js 18 or higher
-- An Ngrok account and auth token
+- An Ngrok account and auth token (for the official @ngrok/ngrok SDK)
 
 ## Setup
 
@@ -22,7 +22,19 @@ NGROK_CUSTOM_DOMAIN=your_custom_domain (optional)
 
 These variables are loaded using the `dotenv` package.
 
-## Running the JavaScript Test
+## Running the Tests
+
+The test directory includes npm scripts for convenient test execution:
+
+```bash
+# From the test directory
+npm run test:js    # Run JavaScript test
+npm run test:ts    # Run TypeScript test directly using tsx
+npm run build      # Compile TypeScript to JavaScript
+npm run test:build # Compile and run the compiled JavaScript
+```
+
+### Running the JavaScript Test
 
 To run the JavaScript test:
 
@@ -32,6 +44,8 @@ node test/test.js
 
 # Or if you're already in the test directory
 node test.js
+# Or use the npm script
+npm run test:js
 ```
 
 This test uses async/await syntax for better readability and error handling. It will:
@@ -43,7 +57,7 @@ This test uses async/await syntax for better readability and error handling. It 
 6. Create a tunnel and log the callback URL
 7. Stop the handler after 10 seconds
 
-## Running the TypeScript Test
+### Running the TypeScript Test
 
 To run the TypeScript test:
 
@@ -53,14 +67,19 @@ npx ts-node test/test.ts
 
 # Or if you're already in the test directory
 npx ts-node test.ts
+# Or use tsx (faster alternative to ts-node)
+npm run test:ts
 ```
 
-The TypeScript test also uses async/await syntax and performs the same steps as the JavaScript test but with TypeScript type safety.
+The TypeScript test uses async/await syntax and performs the same steps as the JavaScript test but with TypeScript type safety. It includes proper TypeScript interfaces for the event data and demonstrates the updated API with the official @ngrok/ngrok SDK.
 
 If you prefer to compile the TypeScript first:
 
 ```bash
 # From the test directory
+npm run build      # Compile TypeScript
+npm run test:build # Compile and run in one step
+# Or manually
 npx tsc
 node dist/test.js
 ```
@@ -69,9 +88,9 @@ node dist/test.js
 
 With a valid Ngrok auth token in the .env file, the test should successfully:
 1. Import the module without errors
-2. Create a CallbackHandler instance
-3. Start the callback handler
-4. Create an Ngrok tunnel
+2. Create a CallbackHandler instance with the new options format
+3. Start the callback handler using the official @ngrok/ngrok SDK
+4. Create an Ngrok tunnel and receive the public URL directly from the start() method
 5. Log the callback URL
 6. Stop the handler after 10 seconds
 
@@ -89,7 +108,7 @@ NGROK_AUTH_TOKEN=your_ngrok_auth_token
 NGROK_CUSTOM_DOMAIN=your_custom_domain
 ```
 
-The CallbackHandler constructor requires an options object with the Ngrok auth token:
+The CallbackHandler constructor requires an options object with the Ngrok auth token for the official @ngrok/ngrok SDK:
 
 ```javascript
 // Create a new instance with options
@@ -98,6 +117,27 @@ const callbackHandler = new CallbackHandler({
     customDomain: process.env.NGROK_CUSTOM_DOMAIN || undefined
 });
 ```
+
+### New in Version 0.5.0
+
+The tests now demonstrate the updated API with the official @ngrok/ngrok SDK:
+
+1. The start() method now returns the public URL directly:
+   ```javascript
+   const url = await callbackHandler.start();
+   console.log(`Callback URL: ${url}`);
+   ```
+
+2. Event handling remains consistent with previous versions, but now works with the official SDK:
+   ```javascript
+   callbackHandler.on('tunnelStatus', (data) => {
+       if (data.level === 'error') {
+           console.error('Tunnel error:', data.message);
+       } else {
+           console.log(`Tunnel Status Callback URL: ${data.message}`);
+       }
+   });
+   ```
 
 You can also modify the test files to change the behavior, such as the timeout before stopping the handler:
 

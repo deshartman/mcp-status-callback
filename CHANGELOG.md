@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 - Improved error handling and tunnel status monitoring
 - Updated dependencies and peer dependencies
 
+### Added
+- Updated tests to work with the new @ngrok/ngrok SDK
+- Added both JavaScript and TypeScript test examples
+- Enhanced test documentation in test/README.md
+- Tests now demonstrate the new start() method that returns the public URL directly
+
 ## [0.4.4] - 2025-04-03
 
 ### Changed
