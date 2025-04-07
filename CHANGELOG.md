@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-04-07
+
+### Changed
+- Migrated from community-maintained ngrok package to the official @ngrok/ngrok JavaScript SDK
+- Updated the implementation to use the new SDK's API
+- Improved error handling and tunnel status monitoring
+- Updated dependencies and peer dependencies
+
 ## [0.4.4] - 2025-04-03
 
 ### Changed

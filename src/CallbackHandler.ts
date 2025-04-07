@@ -1,6 +1,6 @@
 import express from 'express';
 import { EventEmitter } from 'events';
-import ngrok from 'ngrok';
+import * as ngrok from '@ngrok/ngrok';
 
 /**
  * Interface for log event data
@@ -54,6 +54,7 @@ export interface CallbackHandlerOptions {
 export class CallbackHandler extends EventEmitter {
     private app: express.Application;
     private server: any;
+    private ngrokListener: ngrok.Listener | null = null;
     private ngrokUrl: string | null = null;
     private ngrokAuthToken: string;
     private customDomain?: string;
@@ -105,47 +106,6 @@ export class CallbackHandler extends EventEmitter {
     }
 
     /**
-     * Sets up an ngrok tunnel to expose the local server publicly
-     * 
-     * @param port Port number to tunnel to
-     * @returns Promise that resolves to the callback URL
-         */
-    private async setupNgrokTunnel(port: number): Promise<string> {
-        try {
-            // Configure ngrok with auth token
-            await ngrok.authtoken(this.ngrokAuthToken);
-
-            // Configure ngrok options
-            const ngrokOptions: any = {
-                addr: port,
-                authtoken: this.ngrokAuthToken
-            };
-
-            // Add custom domain if provided
-            if (this.customDomain) {
-                ngrokOptions.hostname = this.customDomain;
-                this.emit('log', { level: 'info', message: `Using custom domain: ${this.customDomain}` });
-            }
-
-            // Start ngrok tunnel with the configured options
-            this.ngrokUrl = await ngrok.connect(ngrokOptions);
-
-            // Provide the public URL to the listener
-            const callbackUrl = `${this.ngrokUrl}/callback`;
-            this.emit('tunnelStatus', { level: 'info', message: callbackUrl });
-
-            // Return the callback URL
-            return callbackUrl;
-        } catch (error) {
-            // Emit the error event instead of using console.error
-            this.emit('log', { level: 'error', message: `Failed to establish ngrok tunnel: ${error}` });
-            // If there was a failure in setting up the tunnel, emit the event with the error
-            this.emit('tunnelStatus', { level: 'error', message: error instanceof Error ? error : String(error) });
-            throw error; // Re-throw the error so the caller can handle it
-        }
-    }
-
-    /**
      * Starts the callback server.
      * Automatically finds an available port if the specified port is in use.
      * 
@@ -153,7 +113,7 @@ export class CallbackHandler extends EventEmitter {
      */
     async start(): Promise<string> {
         return new Promise((resolve, reject) => {
-            const startServer = (portToTry: number = 4000) => {
+            const startServer = async (portToTry: number = 4000) => {
                 const serverAttempt = this.app.listen(portToTry);
 
                 serverAttempt.on('error', (error: NodeJS.ErrnoException) => {
@@ -171,7 +131,6 @@ export class CallbackHandler extends EventEmitter {
                     this.server = serverAttempt; // Store the successful server instance
                     this.emit('log', { level: 'info', message: `Callback server listening on port ${portToTry}` });
 
-                    // Set up ngrok tunnel after server starts successfully
                     if (!this.ngrokAuthToken) {
                         const error = new Error('Ngrok auth token not provided');
                         this.emit('log', { level: 'error', message: error });
@@ -180,10 +139,47 @@ export class CallbackHandler extends EventEmitter {
                     }
 
                     try {
-                        // Get the callback URL from setupNgrokTunnel
-                        const callbackUrl = await this.setupNgrokTunnel(portToTry);
+                        // Use the official SDK to establish the tunnel
+                        this.ngrokListener = await ngrok.forward({
+                            addr: portToTry,
+                            authtoken: this.ngrokAuthToken,
+                            domain: this.customDomain,
+                            // Optional status change handler
+                            onStatusChange: (status: string) => {
+                                // Status will contain error information if there's a problem
+                                if (status.includes('error') || status.includes('disconnected')) {
+                                    this.emit('log', {
+                                        level: 'error',
+                                        message: `Tunnel status changed: ${status}`
+                                    });
+                                }
+                            }
+                        });
+
+                        this.ngrokUrl = this.ngrokListener.url();
+                        const callbackUrl = `${this.ngrokUrl}/callback`;
+
+                        if (this.customDomain) {
+                            this.emit('log', { level: 'info', message: `Using custom domain: ${this.customDomain}` });
+                        }
+
+                        this.emit('tunnelStatus', {
+                            level: 'info',
+                            message: callbackUrl
+                        });
+
                         resolve(callbackUrl);
                     } catch (error) {
+                        this.emit('log', {
+                            level: 'error',
+                            message: `Failed to establish ngrok tunnel: ${error}`
+                        });
+
+                        this.emit('tunnelStatus', {
+                            level: 'error',
+                            message: error instanceof Error ? error : String(error)
+                        });
+
                         reject(error);
                     }
                 });
@@ -203,14 +199,32 @@ export class CallbackHandler extends EventEmitter {
     }
 
     /**
-     * Stops the callback server and closes the ngrok tunnel
+     * Stops the callback server and closes all ngrok tunnels
      */
     async stop(): Promise<void> {
-        // Close ngrok tunnel if it exists
-        if (this.ngrokUrl) {
-            await ngrok.disconnect(this.ngrokUrl);
+        try {
+            // Close the ngrok listener if it exists
+            if (this.ngrokListener) {
+                await this.ngrokListener.close();
+                this.emit('log', { level: 'info', message: 'Ngrok tunnel closed' });
+                this.ngrokListener = null;
+                this.ngrokUrl = null;
+            } else {
+                // If for some reason we don't have a listener reference but have a URL,
+                // try to disconnect using the URL
+                if (this.ngrokUrl) {
+                    await ngrok.disconnect(this.ngrokUrl);
+                    this.emit('log', { level: 'info', message: `Disconnected tunnel: ${this.ngrokUrl}` });
+                    this.ngrokUrl = null;
+                }
+
+                // As a fallback, disconnect all tunnels
+                await ngrok.disconnect();
+                this.emit('log', { level: 'info', message: 'All ngrok tunnels closed' });
+            }
+        } catch (error) {
+            this.emit('log', { level: 'error', message: `Error during tunnel cleanup: ${error}` });
         }
-        this.emit('log', { level: 'info', message: 'Ngrok tunnel closed' });
 
         // Close server if it exists
         if (this.server) {

@@ -4,6 +4,18 @@ A utility for handling API callbacks via Ngrok tunnels. Especially useful for MC
 
 This module creates a local Express server and establishes an Ngrok tunnel to it, allowing external services to send callbacks to your local development environment.
 
+## New in Version 0.5.0: Official ngrok SDK
+
+As of version 0.5.0, this package now uses the official ngrok JavaScript SDK (`@ngrok/ngrok`) instead of the community-maintained package. This provides several benefits:
+
+- Official support from ngrok
+- More robust and feature-rich API
+- Better TypeScript integration
+- Improved error handling
+- Native support for TLS backends
+
+The API remains backward compatible, so existing code should continue to work without changes.
+
 ## Installation
 
 ```bash
