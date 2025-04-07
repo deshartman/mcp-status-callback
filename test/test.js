@@ -13,7 +13,7 @@ const runTest = async () => {
         const path = await import('path');
 
         // Load .env file from the test directory
-        dotenv.config({ path: path.join(__dirname, '.env') });
+        dotenv.config();
 
         // Import the module
         const { CallbackHandler } = await import('../build/index.js');
@@ -53,7 +53,7 @@ const runTest = async () => {
             if (data.level === 'error') {
                 console.error('Tunnel error:', data.message);
             } else {
-                console.log(`Callback URL: ${data.message}`);
+                console.log(`Tunnel Status Callback URL: ${data.message}`);
             }
         });
 

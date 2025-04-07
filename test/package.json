@@ -5,11 +5,19 @@
     "main": "test.js",
     "type": "module",
     "scripts": {
-        "test": "node test.js",
-        "build": "tsc --esModuleInterop --outDir ./dist test.ts"
+        "test:js": "node test.js",
+        "test:ts": "tsx test.ts",
+        "build": "npx tsc",
+        "test:build": "npx tsc && node dist/test.js"
     },
     "dependencies": {
-        "dotenv": "^16.4.7",
-        "@deshartman/mcp-status-callback": "../build/index.js"
+        "@deshartman/mcp-status-callback": "../build/index.js",
+        "dotenv": "^16.4.7"
+    },
+    "devDependencies": {
+        "@types/node": "^18.19.26",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.19.3",
+        "typescript": "^5.3.3"
     }
 }

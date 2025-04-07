@@ -1,29 +1,22 @@
 /**
- * TypeScript test for mcp-status-callback
+ * Simple test for mcp-status-callback
  * 
- * This test verifies that the local module can be imported and used correctly with TypeScript.
+ * This test verifies that the local module can be imported and used correctly.
  * Uses environment variables from .env file for Ngrok authentication.
  */
-
-// Import modules at the top level
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-// Import types from the main module
-import type { CallbackEventData, LogEventData, TunnelStatusEventData } from '../src/CallbackHandler.js';
-
-// Load .env file from the test directory
-dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Define an async function to run the test
 const runTest = async (): Promise<void> => {
     try {
-        // Import the module - using a path that works after compilation to dist/
-        // @ts-ignore - This path works at runtime after compilation
-        const { CallbackHandler } = await import('../../build/index.js');
+        // Load environment variables from .env file
+        const dotenv = await import('dotenv');
+        const path = await import('path');
 
-        // // Alternative import method
-        // const module = await import('../../build/index.js');
-        // const { CallbackHandler } = module;
+        // Load .env file from the test directory
+        dotenv.config();
+
+        // Import the module
+        const { CallbackHandler } = await import('../build/index.js');
 
         // Get the Ngrok auth token from .env
         const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
@@ -46,24 +39,21 @@ const runTest = async (): Promise<void> => {
 
         console.log('CallbackHandler instance created successfully');
 
-        // Set up event listeners
-        callbackHandler.on('log', (data: LogEventData) => {
+        // Set up event listeners with proper TypeScript interfaces
+        callbackHandler.on('log', (data) => {
             console.log(`[${data.level.toUpperCase()}] ${data.message}`);
         });
 
-        callbackHandler.on('callback', (data: CallbackEventData) => {
+        callbackHandler.on('callback', (data) => {
             console.log('Received callback query parameters:', data.queryParameters);
             console.log('Received callback body:', data.body);
         });
 
-        callbackHandler.on('tunnelStatus', (data: TunnelStatusEventData) => {
+        callbackHandler.on('tunnelStatus', (data) => {
             if (data.level === 'error') {
-                const error = data.message instanceof Error
-                    ? data.message.message
-                    : data.message;
-                console.error('Tunnel error:', error);
+                console.error('Tunnel error:', data.message);
             } else {
-                console.log(`Callback URL: ${data.message}`);
+                console.log(`Tunnel Status Callback URL: ${data.message}`);
             }
         });
 
