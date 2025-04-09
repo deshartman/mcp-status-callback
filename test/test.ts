@@ -5,18 +5,23 @@
  * Uses environment variables from .env file for Ngrok authentication.
  */
 
+// Static imports at the top of the file
+import dotenv from 'dotenv';
+import path from 'path';
+import {
+    CallbackHandler,
+    CallbackHandlerEventNames,
+    LogEventData,
+    CallbackEventData,
+    TunnelStatusEventData
+} from '@deshartman/mcp-status-callback';
+
+// Load .env file from the test directory
+dotenv.config();
+
 // Define an async function to run the test
 const runTest = async (): Promise<void> => {
     try {
-        // Load environment variables from .env file
-        const dotenv = await import('dotenv');
-        const path = await import('path');
-
-        // Load .env file from the test directory
-        dotenv.config();
-
-        // Import the module
-        const { CallbackHandler } = await import('../build/index.js');
 
         // Get the Ngrok auth token from .env
         const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN;
@@ -39,17 +44,17 @@ const runTest = async (): Promise<void> => {
 
         console.log('CallbackHandler instance created successfully');
 
-        // Set up event listeners with proper TypeScript interfaces
-        callbackHandler.on('log', (data) => {
+        // Set up event listeners with proper TypeScript interfaces using constants
+        callbackHandler.on(CallbackHandlerEventNames.LOG, (data: LogEventData) => {
             console.log(`[${data.level.toUpperCase()}] ${data.message}`);
         });
 
-        callbackHandler.on('callback', (data) => {
+        callbackHandler.on(CallbackHandlerEventNames.CALLBACK, (data: CallbackEventData) => {
             console.log('Received callback query parameters:', data.queryParameters);
             console.log('Received callback body:', data.body);
         });
 
-        callbackHandler.on('tunnelStatus', (data) => {
+        callbackHandler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data: TunnelStatusEventData) => {
             if (data.level === 'error') {
                 console.error('Tunnel error:', data.message);
             } else {

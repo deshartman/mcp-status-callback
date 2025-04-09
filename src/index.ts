@@ -10,7 +10,8 @@ export {
     LogEventData,
     CallbackEventData,
     TunnelStatusEventData,
-    CallbackHandlerEvents
+    CallbackHandlerEvents,
+    CallbackHandlerEventNames // Export the new constants
 } from './CallbackHandler.js';
 
 // For backward compatibility

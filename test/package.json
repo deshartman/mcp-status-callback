@@ -11,7 +11,7 @@
         "test:build": "npx tsc && node dist/test.js"
     },
     "dependencies": {
-        "@deshartman/mcp-status-callback": "../build/index.js",
+        "@deshartman/mcp-status-callback": "file:../",
         "dotenv": "^16.4.7"
     },
     "devDependencies": {

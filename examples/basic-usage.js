@@ -5,7 +5,8 @@
  * and use the callback URL in your application.
  */
 
-import { CallbackHandler } from '@deshartman/mcp-status-callback';
+// Import constants along with the class
+import { CallbackHandler, CallbackHandlerEventNames } from '@deshartman/mcp-status-callback';
 
 // Get Ngrok auth token and optional custom domain
 const ngrokAuthToken = process.env.NGROK_AUTH_TOKEN || 'YOUR_NGROK_AUTH_TOKEN';
@@ -18,15 +19,15 @@ const callbackHandler = new CallbackHandler({
     customDomain: customDomain || undefined
 });
 
-// Set up event listeners for logs (only errors and warnings)
-callbackHandler.on('log', (data) => {
+// Set up event listeners for logs (only errors and warnings) using constants
+callbackHandler.on(CallbackHandlerEventNames.LOG, (data) => {
     if (data.level === 'error' || data.level === 'warn') {
         console.log(`[${data.level.toUpperCase()}] ${data.message}`);
     }
 });
 
-// Listen for callbacks
-callbackHandler.on('callback', (data) => {
+// Listen for callbacks using constants
+callbackHandler.on(CallbackHandlerEventNames.CALLBACK, (data) => {
     // Log a simplified version of the callback data
     console.log('Received callback:');
 
@@ -46,8 +47,8 @@ callbackHandler.on('callback', (data) => {
     }
 });
 
-// Listen for tunnel status updates
-callbackHandler.on('tunnelStatus', (data) => {
+// Listen for tunnel status updates using constants
+callbackHandler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data) => {
     if (data.level === 'error') {
         console.error('Failed to establish tunnel:', data.message);
         process.exit(1);

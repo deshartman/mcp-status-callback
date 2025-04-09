@@ -1,6 +1,6 @@
 {
     "name": "@deshartman/mcp-status-callback",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "description": "A utility for handling API callbacks via Ngrok tunnels. Especially useful for MCP status callbacks.",
     "main": "build/index.js",
     "types": "build/index.d.ts",

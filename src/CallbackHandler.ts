@@ -3,7 +3,28 @@ import { EventEmitter } from 'events';
 import * as ngrok from '@ngrok/ngrok';
 
 /**
- * Interface for log event data
+ * Defines constants for the event names emitted by CallbackHandler.
+ * Using these constants provides type safety and prevents typos.
+ *
+ * @example
+ * import { CallbackHandler, CallbackHandlerEventNames } from './CallbackHandler';
+ * const handler = new CallbackHandler({ ngrokAuthToken: 'token' });
+ * handler.on(CallbackHandlerEventNames.LOG, (data) => console.log(data.message));
+ * handler.on(CallbackHandlerEventNames.CALLBACK, (data) => console.log(data.body));
+ * handler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data) => console.log(data.message));
+ */
+export const CallbackHandlerEventNames = {
+    /** Emitted for general log messages */
+    LOG: 'log',
+    /** Emitted when a callback is received on the /callback endpoint */
+    CALLBACK: 'callback',
+    /** Emitted when the Ngrok tunnel status changes (e.g., connection established, error) */
+    TUNNEL_STATUS: 'tunnelStatus',
+} as const;
+
+/**
+ * Interface for log event data emitted by the 'log' event.
+ * @see {@link CallbackHandlerEventNames.LOG}
  */
 export interface LogEventData {
     level: 'info' | 'warn' | 'error';
@@ -11,7 +32,8 @@ export interface LogEventData {
 }
 
 /**
- * Interface for callback event data
+ * Interface for callback event data emitted by the 'callback' event.
+ * @see {@link CallbackHandlerEventNames.CALLBACK}
  */
 export interface CallbackEventData {
     level: 'info';
@@ -20,7 +42,8 @@ export interface CallbackEventData {
 }
 
 /**
- * Interface for tunnel status event data
+ * Interface for tunnel status event data emitted by the 'tunnelStatus' event.
+ * @see {@link CallbackHandlerEventNames.TUNNEL_STATUS}
  */
 export interface TunnelStatusEventData {
     level: 'info' | 'error';
@@ -28,16 +51,35 @@ export interface TunnelStatusEventData {
 }
 
 /**
- * Type definition for CallbackHandler events
+ * Defines the events emitted by the {@link CallbackHandler} class.
+ * Use {@link CallbackHandlerEventNames} constants for event names.
  */
 export interface CallbackHandlerEvents {
-    log: (data: LogEventData) => void;
-    callback: (data: CallbackEventData) => void;
-    tunnelStatus: (data: TunnelStatusEventData) => void;
+    /**
+     * Emitted for logging purposes (info, warnings, errors).
+     * @param data - The log event data.
+     * @see {@link LogEventData}
+     * @see {@link CallbackHandlerEventNames.LOG}
+     */
+    [CallbackHandlerEventNames.LOG]: (data: LogEventData) => void;
+    /**
+     * Emitted when a request is received on the /callback endpoint.
+     * @param data - The callback event data, containing query parameters and body.
+     * @see {@link CallbackEventData}
+     * @see {@link CallbackHandlerEventNames.CALLBACK}
+     */
+    [CallbackHandlerEventNames.CALLBACK]: (data: CallbackEventData) => void;
+    /**
+     * Emitted when the Ngrok tunnel status changes or provides the initial URL.
+     * @param data - The tunnel status event data.
+     * @see {@link TunnelStatusEventData}
+     * @see {@link CallbackHandlerEventNames.TUNNEL_STATUS}
+     */
+    [CallbackHandlerEventNames.TUNNEL_STATUS]: (data: TunnelStatusEventData) => void;
 }
 
 /**
- * Interface for CallbackHandler constructor options
+ * Interface for {@link CallbackHandler} constructor options.
  */
 export interface CallbackHandlerOptions {
     ngrokAuthToken: string;
@@ -45,11 +87,45 @@ export interface CallbackHandlerOptions {
 }
 
 /**
- * CallbackHandler class
- * 
- * This utility establishes an Ngrok tunnel to a local Express server for API callbacks.
- * If you fire off an API request with a status callback URL, this utility can handle
- * the response to a localhost via an Ngrok tunnel and emit the result to a local listener.
+ * CallbackHandler Class
+ *
+ * Establishes an Ngrok tunnel to a local Express server for handling API status callbacks,
+ * particularly useful in development environments or for MCP (Model Context Protocol) servers.
+ * It automatically finds an available port, starts an Express server, connects it via Ngrok,
+ * and emits events for logs, received callbacks, and tunnel status changes.
+ *
+ * Use {@link CallbackHandlerEventNames} constants when subscribing to events.
+ *
+ * @example
+ * import { CallbackHandler, CallbackHandlerEventNames, CallbackHandlerOptions } from './CallbackHandler';
+ *
+ * const options: CallbackHandlerOptions = { ngrokAuthToken: 'YOUR_NGROK_TOKEN' };
+ * const handler = new CallbackHandler(options);
+ *
+ * handler.on(CallbackHandlerEventNames.LOG, (data) => console.log(`[${data.level}] ${data.message}`));
+ * handler.on(CallbackHandlerEventNames.CALLBACK, (data) => {
+ *   console.log('Received callback:', data.body);
+ * });
+ * handler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data) => {
+ *   if (data.level === 'info') console.log('Callback URL:', data.message);
+ *   else console.error('Tunnel Error:', data.message);
+ * });
+ *
+ * async function start() {
+ *   try {
+ *     const url = await handler.start();
+ *     console.log(`Handler started. Callback URL: ${url}`);
+ *     // Use 'url' in your API calls
+ *   } catch (error) {
+ *     console.error('Failed to start handler:', error);
+ *   }
+ * }
+ *
+ * start();
+ *
+ * // To stop: await handler.stop();
+ *
+ * @extends EventEmitter
  */
 export class CallbackHandler extends EventEmitter {
     private app: express.Application;
@@ -98,7 +174,8 @@ export class CallbackHandler extends EventEmitter {
             // If it's already JSON, express.json middleware has parsed it and we can use it as is
 
             // Emit an event with the query parameters object and the processed body
-            this.emit('callback', { level: 'info', queryParameters: queryParameters, body: body });
+            // Use the constant for consistency, although the string literal works here too
+            this.emit(CallbackHandlerEventNames.CALLBACK, { level: 'info', queryParameters: queryParameters, body: body });
 
             // Send a success response
             res.status(200).send('Callback received');
@@ -118,22 +195,22 @@ export class CallbackHandler extends EventEmitter {
 
                 serverAttempt.on('error', (error: NodeJS.ErrnoException) => {
                     if (error.code === 'EADDRINUSE') {
-                        this.emit('log', { level: 'warn', message: `Port ${portToTry} in use, trying port ${portToTry + 1}` });
+                        this.emit(CallbackHandlerEventNames.LOG, { level: 'warn', message: `Port ${portToTry} in use, trying port ${portToTry + 1}` });
                         serverAttempt.close();
                         startServer(portToTry + 1);
                     } else {
-                        this.emit('log', { level: 'error', message: `Start server Error: ${error}` });
+                        this.emit(CallbackHandlerEventNames.LOG, { level: 'error', message: `Start server Error: ${error}` });
                         reject(error);
                     }
                 });
 
                 serverAttempt.on('listening', async () => {
                     this.server = serverAttempt; // Store the successful server instance
-                    this.emit('log', { level: 'info', message: `Callback server listening on port ${portToTry}` });
+                    this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: `Callback server listening on port ${portToTry}` });
 
                     if (!this.ngrokAuthToken) {
                         const error = new Error('Ngrok auth token not provided');
-                        this.emit('log', { level: 'error', message: error });
+                        this.emit(CallbackHandlerEventNames.LOG, { level: 'error', message: error });
                         reject(error);
                         return;
                     }
@@ -148,7 +225,7 @@ export class CallbackHandler extends EventEmitter {
                             onStatusChange: (status: string) => {
                                 // Status will contain error information if there's a problem
                                 if (status.includes('error') || status.includes('disconnected')) {
-                                    this.emit('log', {
+                                    this.emit(CallbackHandlerEventNames.LOG, {
                                         level: 'error',
                                         message: `Tunnel status changed: ${status}`
                                     });
@@ -160,22 +237,22 @@ export class CallbackHandler extends EventEmitter {
                         const callbackUrl = `${this.ngrokUrl}/callback`;
 
                         if (this.customDomain) {
-                            this.emit('log', { level: 'info', message: `Using custom domain: ${this.customDomain}` });
+                            this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: `Using custom domain: ${this.customDomain}` });
                         }
 
-                        this.emit('tunnelStatus', {
+                        this.emit(CallbackHandlerEventNames.TUNNEL_STATUS, {
                             level: 'info',
                             message: callbackUrl
                         });
 
                         resolve(callbackUrl);
                     } catch (error) {
-                        this.emit('log', {
+                        this.emit(CallbackHandlerEventNames.LOG, {
                             level: 'error',
                             message: `Failed to establish ngrok tunnel: ${error}`
                         });
 
-                        this.emit('tunnelStatus', {
+                        this.emit(CallbackHandlerEventNames.TUNNEL_STATUS, {
                             level: 'error',
                             message: error instanceof Error ? error : String(error)
                         });
@@ -206,7 +283,7 @@ export class CallbackHandler extends EventEmitter {
             // Close the ngrok listener if it exists
             if (this.ngrokListener) {
                 await this.ngrokListener.close();
-                this.emit('log', { level: 'info', message: 'Ngrok tunnel closed' });
+                this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: 'Ngrok tunnel closed' });
                 this.ngrokListener = null;
                 this.ngrokUrl = null;
             } else {
@@ -214,35 +291,60 @@ export class CallbackHandler extends EventEmitter {
                 // try to disconnect using the URL
                 if (this.ngrokUrl) {
                     await ngrok.disconnect(this.ngrokUrl);
-                    this.emit('log', { level: 'info', message: `Disconnected tunnel: ${this.ngrokUrl}` });
+                    this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: `Disconnected tunnel: ${this.ngrokUrl}` });
                     this.ngrokUrl = null;
                 }
 
                 // As a fallback, disconnect all tunnels
                 await ngrok.disconnect();
-                this.emit('log', { level: 'info', message: 'All ngrok tunnels closed' });
+                this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: 'All ngrok tunnels closed' });
             }
         } catch (error) {
-            this.emit('log', { level: 'error', message: `Error during tunnel cleanup: ${error}` });
+            this.emit(CallbackHandlerEventNames.LOG, { level: 'error', message: `Error during tunnel cleanup: ${error}` });
         }
 
         // Close server if it exists
         if (this.server) {
             this.server.close();
-            this.emit('log', { level: 'info', message: 'Callback server stopped' });
+            this.emit(CallbackHandlerEventNames.LOG, { level: 'info', message: 'Callback server stopped' });
         }
     }
 
+    // --- Type-safe EventEmitter Overrides ---
+
     /**
-     * Type-safe event emitter methods
+     * Adds the `listener` function to the end of the listeners array for the
+     * event named `event`. No checks are made to see if the `listener` has
+     * already been added. Multiple calls passing the same combination of `event`
+     * and `listener` will result in the `listener` being added, and called, multiple
+     * times.
+     *
+     * Use {@link CallbackHandlerEventNames} constants for the `event` parameter.
+     *
+     * @param event The name of the event. Use {@link CallbackHandlerEventNames}.
+     * @param listener The callback function
+     * @returns A reference to the CallbackHandler, so that calls can be chained.
      */
     on<E extends keyof CallbackHandlerEvents>(
         event: E,
         listener: CallbackHandlerEvents[E]
     ): this {
+        // The `as any` cast is necessary because TypeScript struggles to reconcile
+        // the generic E with the specific keys of CallbackHandlerEvents within the super call.
+        // However, the method signature ensures type safety for the caller.
         return super.on(event, listener as any);
     }
 
+    /**
+     * Adds a **one-time** `listener` function for the event named `event`. The
+     * next time `event` is triggered, this listener is removed and then called.
+     *
+     * Use {@link CallbackHandlerEventNames} constants for the `event` parameter.
+     *
+     * @param event The name of the event. Use {@link CallbackHandlerEventNames}.
+     * @param listener The callback function
+     * @returns A reference to the CallbackHandler, so that calls can be chained.
+     */
     once<E extends keyof CallbackHandlerEvents>(
         event: E,
         listener: CallbackHandlerEvents[E]
@@ -250,6 +352,16 @@ export class CallbackHandler extends EventEmitter {
         return super.once(event, listener as any);
     }
 
+    /**
+     * Synchronously calls each of the listeners registered for the event named `event`,
+     * in the order they were registered, passing the supplied arguments to each.
+     *
+     * Use {@link CallbackHandlerEventNames} constants for the `event` parameter.
+     *
+     * @param event The name of the event. Use {@link CallbackHandlerEventNames}.
+     * @param args Arguments to pass to the listeners. See {@link CallbackHandlerEvents}.
+     * @returns `true` if the event had listeners, `false` otherwise.
+     */
     emit<E extends keyof CallbackHandlerEvents>(
         event: E,
         ...args: Parameters<CallbackHandlerEvents[E]>

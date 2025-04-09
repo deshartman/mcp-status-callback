@@ -32,7 +32,8 @@ npm install @deshartman/mcp-status-callback
 ### Basic Usage
 
 ```javascript
-import { CallbackHandler } from '@deshartman/mcp-status-callback';
+// Import the constants along with the class
+import { CallbackHandler, CallbackHandlerEventNames } from '@deshartman/mcp-status-callback';
 
 // Create a new instance with required options
 const callbackHandler = new CallbackHandler({
@@ -40,18 +41,18 @@ const callbackHandler = new CallbackHandler({
   customDomain: 'your-custom-domain.ngrok.dev' // Optional
 });
 
-// Set up event listeners
-callbackHandler.on('log', (data) => {
+// Set up event listeners using the constants
+callbackHandler.on(CallbackHandlerEventNames.LOG, (data) => {
   console.log(`${data.level}: ${data.message}`);
 });
 
-callbackHandler.on('callback', (data) => {
+callbackHandler.on(CallbackHandlerEventNames.CALLBACK, (data) => {
   console.log('Received callback query parameters:', data.queryParameters);
   console.log('Received callback body:', data.body);
   // Process the callback data here
 });
 
-callbackHandler.on('tunnelStatus', (data) => {
+callbackHandler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data) => {
   if (data.level === 'error') {
     console.error('Tunnel error:', data.message);
   } else {
@@ -93,7 +94,15 @@ callbackHandler.on('tunnelStatus', (data) => {
 ### TypeScript Usage
 
 ```typescript
-import { CallbackHandler, CallbackEventData, CallbackHandlerOptions } from '@deshartman/mcp-status-callback';
+// Import constants and types
+import {
+  CallbackHandler,
+  CallbackEventData,
+  CallbackHandlerOptions,
+  CallbackHandlerEventNames, // Import the event name constants
+  LogEventData,              // Import other event data types if needed
+  TunnelStatusEventData
+} from '@deshartman/mcp-status-callback';
 
 // Define options with TypeScript type
 const options: CallbackHandlerOptions = {
@@ -103,10 +112,24 @@ const options: CallbackHandlerOptions = {
 
 const callbackHandler = new CallbackHandler(options);
 
-callbackHandler.on('callback', (data: CallbackEventData) => {
-  const queryParams = data.queryParameters;
-  const payload = data.body;
-  // Process the strongly-typed payload
+// Use constants for event names and provide explicit types for data
+callbackHandler.on(CallbackHandlerEventNames.LOG, (data: LogEventData) => {
+  console.log(`[${data.level.toUpperCase()}] ${data.message}`);
+});
+
+callbackHandler.on(CallbackHandlerEventNames.CALLBACK, (data: CallbackEventData) => {
+  const queryParams = data.queryParameters; // Still 'any' based on current plan
+  const payload = data.body; // Still 'any' based on current plan
+  console.log('TS Callback received:', payload);
+  // Process the payload
+});
+
+callbackHandler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data: TunnelStatusEventData) => {
+  if (data.level === 'info') {
+    console.log('TS Tunnel Ready:', data.message);
+  } else {
+    console.error('TS Tunnel Error:', data.message);
+  }
 });
 
 // Start the server - returns a Promise with the public URL
@@ -148,16 +171,14 @@ new CallbackHandler(options: CallbackHandlerOptions)
 
 #### Events
 
-- `'log'` - Emitted for general log messages
-  - `level`: 'info' | 'warn' | 'error'
-  - `message`: string | Error
-- `'callback'` - Emitted when a callback is received
-  - `level`: 'info'
-  - `queryParameters`: any (the query parameters from the request)
-  - `body`: any (the request body payload)
-- `'tunnelStatus'` - Emitted when the tunnel status changes
-  - `level`: 'info' | 'error'
-  - `message`: string | Error
+Use the exported `CallbackHandlerEventNames` constants for type-safe event handling.
+
+- `CallbackHandlerEventNames.LOG` (`'log'`) - Emitted for general log messages.
+  - `data`: `LogEventData` (`{ level: 'info' | 'warn' | 'error', message: string | Error }`)
+- `CallbackHandlerEventNames.CALLBACK` (`'callback'`) - Emitted when a callback is received on the `/callback` endpoint.
+  - `data`: `CallbackEventData` (`{ level: 'info', queryParameters: any, body: any }`)
+- `CallbackHandlerEventNames.TUNNEL_STATUS` (`'tunnelStatus'`) - Emitted when the tunnel status changes (e.g., connection established, error) or provides the initial URL.
+  - `data`: `TunnelStatusEventData` (`{ level: 'info' | 'error', message: string | Error }`)
 
 ## Automatic Port Finding
 

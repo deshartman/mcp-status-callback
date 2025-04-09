@@ -9,7 +9,7 @@
         "resolveJsonModule": true,
         "paths": {
             "@deshartman/mcp-status-callback": [
-                "../build/index.js"
+                "../build/index"
             ]
         }
     },

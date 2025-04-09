@@ -10,7 +10,8 @@ import {
     CallbackHandlerOptions,
     LogEventData,
     CallbackEventData,
-    TunnelStatusEventData
+    TunnelStatusEventData,
+    CallbackHandlerEventNames // Import the event name constants
 } from '@deshartman/mcp-status-callback';
 
 // Define a type for our application's callback payload
@@ -41,14 +42,14 @@ const options: CallbackHandlerOptions = {
 
 const callbackHandler = new CallbackHandler(options);
 
-// Set up event listeners with proper typing
-callbackHandler.on('log', (data: LogEventData) => {
+// Set up event listeners with proper typing using constants
+callbackHandler.on(CallbackHandlerEventNames.LOG, (data: LogEventData) => {
     const { level, message } = data;
     console.log(`[${level.toUpperCase()}] ${message}`);
 });
 
-// Handle callbacks with type casting for our specific payload
-callbackHandler.on('callback', (data: CallbackEventData) => {
+// Handle callbacks with type casting for our specific payload using constants
+callbackHandler.on(CallbackHandlerEventNames.CALLBACK, (data: CallbackEventData) => {
     // Check for query parameters
     if (data.queryParameters) {
         console.log('Query parameters received:');
@@ -94,8 +95,8 @@ callbackHandler.on('callback', (data: CallbackEventData) => {
     }
 });
 
-// Handle tunnel status with proper typing
-callbackHandler.on('tunnelStatus', (data: TunnelStatusEventData) => {
+// Handle tunnel status with proper typing using constants
+callbackHandler.on(CallbackHandlerEventNames.TUNNEL_STATUS, (data: TunnelStatusEventData) => {
     if (data.level === 'error') {
         const error = data.message instanceof Error
             ? data.message.message

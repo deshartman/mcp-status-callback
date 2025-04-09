@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-09-04
+
+### Added
+- Exported `CallbackHandlerEventNames` constants (`LOG`, `CALLBACK`, `TUNNEL_STATUS`) for type-safe event handling.
+- Added comprehensive JSDoc comments to `CallbackHandler`, interfaces, and methods for improved discoverability and documentation.
+
+### Changed
+- Updated internal `emit` calls to use `CallbackHandlerEventNames` constants for consistency.
+- Updated README examples and API reference to use `CallbackHandlerEventNames`.
+
 ## [0.5.0] - 2025-04-07
 
 ### Changed
