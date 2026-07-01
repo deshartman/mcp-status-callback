@@ -14,10 +14,13 @@ vi.mock('@ngrok/ngrok', () => {
 });
 
 // Access the private Express app for direct HTTP-layer testing.
-const appOf = (h: CallbackHandler): express.Application =>
-    (h as unknown as { app: express.Application }).app;
+const appOf = (h: CallbackHandler): express.Application => (h as unknown as { app: express.Application }).app;
 
-const makeLogger = (): Logger & { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> } => ({
+const makeLogger = (): Logger & {
+    info: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+} => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
@@ -106,10 +109,7 @@ describe('CallbackHandler /callback route', () => {
             onCallback,
         });
 
-        await request(appOf(handler))
-            .post('/callback')
-            .send({ ok: true })
-            .expect(200);
+        await request(appOf(handler)).post('/callback').send({ ok: true }).expect(200);
 
         expect(resolved).toBe(true);
     });
