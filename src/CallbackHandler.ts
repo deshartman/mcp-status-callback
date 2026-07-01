@@ -1,5 +1,6 @@
 import express from 'express';
 import * as ngrok from '@ngrok/ngrok';
+import type { Server } from 'node:http';
 
 /**
  * Structural logger interface. Anyone can pass `console`, pino, winston, or a
@@ -57,7 +58,7 @@ const NOOP_LOGGER: Logger = {
  */
 export class CallbackHandler {
     private app: express.Application;
-    private server: any;
+    private server: Server | null = null;
     private ngrokListener: ngrok.Listener | null = null;
     private ngrokUrl: string | null = null;
     private ngrokAuthToken: string;

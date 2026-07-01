@@ -72,7 +72,7 @@ describe('CallbackHandler /callback route', () => {
             .expect(200);
 
         expect(onCallback).toHaveBeenCalledTimes(1);
-        const payload = onCallback.mock.calls[0]![0] as CallbackData;
+        const payload = onCallback.mock.calls[0]?.[0] as CallbackData;
         expect(payload.queryParameters).toMatchObject({ source: 'twilio' });
         expect(payload.body).toEqual({ status: 'completed' });
     });
@@ -90,7 +90,7 @@ describe('CallbackHandler /callback route', () => {
             .send('CallSid=CA123&CallStatus=completed')
             .expect(200);
 
-        const payload = onCallback.mock.calls[0]![0] as CallbackData;
+        const payload = onCallback.mock.calls[0]?.[0] as CallbackData;
         expect(payload.body).toEqual({ CallSid: 'CA123', CallStatus: 'completed' });
         expect(Object.getPrototypeOf(payload.body)).toBe(Object.prototype);
     });
@@ -134,13 +134,15 @@ describe('CallbackHandler port collision', () => {
     let blocker: Server | undefined;
 
     beforeEach(async () => {
-        blocker = createServer();
-        await new Promise<void>((resolve) => blocker!.listen(4000, resolve));
+        const s = createServer();
+        blocker = s;
+        await new Promise<void>((resolve) => s.listen(4000, resolve));
     });
 
     afterEach(async () => {
-        if (blocker) {
-            await new Promise<void>((resolve) => blocker!.close(() => resolve()));
+        const s = blocker;
+        if (s) {
+            await new Promise<void>((resolve) => s.close(() => resolve()));
         }
     });
 
