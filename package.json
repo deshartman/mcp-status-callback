@@ -1,19 +1,24 @@
 {
     "name": "@deshartman/mcp-status-callback",
-    "version": "0.5.1",
+    "version": "1.0.0",
     "description": "A utility for handling API callbacks via Ngrok tunnels. Especially useful for MCP status callbacks.",
     "main": "build/index.js",
     "types": "build/index.d.ts",
     "type": "module",
+    "packageManager": "pnpm@10.32.0",
     "files": [
         "build/**/*"
     ],
     "scripts": {
         "build": "tsc && chmod +x build/index.js",
-        "start": "node build/index.js",
-        "dev": "ts-node src/index.ts",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "prepublishOnly": "npm run build"
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src test examples",
+        "format": "prettier --write src test examples",
+        "format:check": "prettier --check src test examples",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "prepublishOnly": "pnpm run build"
     },
     "keywords": [
         "mcp",
@@ -32,16 +37,26 @@
     },
     "devDependencies": {
         "@types/express": "^4.17.21",
-        "@types/node": "^18.19.26",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.3.3"
+        "@types/node": "^24.13.2",
+        "@types/supertest": "^7.2.0",
+        "@typescript-eslint/eslint-plugin": "^8.62.1",
+        "@typescript-eslint/parser": "^8.62.1",
+        "@vitest/coverage-v8": "^4.1.9",
+        "dotenv": "^17.4.2",
+        "eslint": "^9.39.4",
+        "eslint-config-prettier": "^10.1.8",
+        "prettier": "^3.9.4",
+        "supertest": "^7.2.2",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.62.1",
+        "vitest": "^4.1.9"
     },
     "peerDependencies": {
-        "express": ">=4.0.0",
-        "@ngrok/ngrok": ">=1.0.0"
+        "@ngrok/ngrok": ">=1.0.0",
+        "express": ">=4.0.0"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=22.0.0"
     },
     "repository": {
         "type": "git",

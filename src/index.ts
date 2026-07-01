@@ -1,18 +1,10 @@
 /**
  * MCP Status Callback Handler
- * 
- * A utility for handling API callbacks via Ngrok tunnels
+ *
+ * A utility for handling API callbacks via Ngrok tunnels.
  */
 
-export {
-    CallbackHandler,
-    CallbackHandlerOptions,
-    LogEventData,
-    CallbackEventData,
-    TunnelStatusEventData,
-    CallbackHandlerEvents,
-    CallbackHandlerEventNames // Export the new constants
-} from './CallbackHandler.js';
+export { CallbackHandler } from './CallbackHandler.js';
+export type { CallbackHandlerOptions, CallbackData, Logger } from './CallbackHandler.js';
 
-// For backward compatibility
 export { CallbackHandler as default } from './CallbackHandler.js';
