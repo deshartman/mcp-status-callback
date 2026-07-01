@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-07-01
+
+Stack modernization + dependency-injected API. This is a **breaking release** — see the migration snippet below.
+
+### Breaking changes
+
+- **`EventEmitter` API removed.** `CallbackHandler` no longer extends `EventEmitter`. `.on()` / `.once()` / `.emit()` no longer exist. Subscribe to callbacks via the constructor instead.
+- **`onCallback` is now a required constructor option.** Signature: `(data: { queryParameters, body }) => void | Promise<void>`. The `POST /callback` handler `await`s this before responding — a hanging or throwing handler is now visible to the caller (previously silent).
+- **`logger` is a new optional constructor option.** Structural interface `{ info, warn, error }` — pass `console`, pino, winston, or any matching object. Default is a **no-op logger** (silent). Consumers who previously relied on the `log` event getting console output must pass `logger: console` to preserve that behavior.
+- **`tunnelStatus` event removed.** The URL is the return value of `start()`; mid-session errors surface via `logger.error()` and cause `start()` to reject during startup.
+- **Type exports removed:** `CallbackHandlerEventNames`, `LogEventData`, `CallbackEventData`, `TunnelStatusEventData`, `CallbackHandlerEvents`.
+- **Type exports added:** `Logger`, `CallbackData`.
+- **Node 22+ required** (was 18+). Node 18 hit EOL 2025-04-30.
+- **Response now 500 on `onCallback` error** (was: silently `200`).
+
+### Migration
+
+```diff
+  const handler = new CallbackHandler({
+    ngrokAuthToken: process.env.NGROK_AUTH_TOKEN!,
++   onCallback: ({ queryParameters, body }) => {
++     // paste your old 'callback' handler body here
++   },
++   logger: console,  // if you want the old log output back
+  });
+-
+- handler.on('log', (data) => console.log(`[${data.level}] ${data.message}`));
+- handler.on('callback', (data) => { /* moved to onCallback above */ });
+- handler.on('tunnelStatus', (data) => console.log(data.message));
+
+  const url = await handler.start();
++ // 'url' is the same value the old 'tunnelStatus' event delivered.
+```
+
+### Tooling changes
+
+- Migrated from npm to pnpm (`packageManager: pnpm@10.32.0`).
+- TypeScript 6.0, `target: ES2023`, `noUncheckedSideEffectImports`, `verbatimModuleSyntax`.
+- Replaced ad-hoc `test/` npm project with **vitest** — tests run against source (`test/**/*.test.ts`), not against the build output.
+- Added ESLint 9 (flat config) + Prettier + `eslint-config-prettier`.
+- Added GitHub Actions CI matrix (Node 22 + 24).
+- `import { EventEmitter } from 'events'` → `from 'node:events'` (later removed with EventEmitter itself).
+
 ## [0.5.1] - 2025-09-04
 
 ### Added
