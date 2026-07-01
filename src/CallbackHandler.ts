@@ -1,5 +1,5 @@
 import express from 'express';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import * as ngrok from '@ngrok/ngrok';
 
 /**
